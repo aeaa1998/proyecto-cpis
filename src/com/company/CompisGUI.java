@@ -20,6 +20,8 @@ import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -54,18 +56,26 @@ public class CompisGUI extends Application {
             "SELF_TYPE"
     };
     private static final String KEYWORD_PATTERN = "\\b(?i)(" + String.join("|", KEYWORDS) + ")\\b";
+    private static final String COMMENT_PATTERN = "\\(\\*(\n|.)*?\\*\\)";
+    private static final String BRACKET_PATTERN = "\\[|\\]";
+    private static final String SEMICOLON_PATTERN = "\\;";
+    private static final String STRING_PATTERN = "\"([^\"\\\\]|\\\\.)*\"";
+    private static final String BRACE_PATTERN = "\\{|\\}";
+
+
 
     private static final Pattern PATTERN = Pattern.compile(
             "(?<KEYWORD>" + KEYWORD_PATTERN + ")"
 //                    + "|(?<PAREN>" + PAREN_PATTERN + ")"
-//                    + "|(?<BRACE>" + BRACE_PATTERN + ")"
-//                    + "|(?<BRACKET>" + BRACKET_PATTERN + ")"
-//                    + "|(?<SEMICOLON>" + SEMICOLON_PATTERN + ")"
-//                    + "|(?<STRING>" + STRING_PATTERN + ")"
-//                    + "|(?<COMMENT>" + COMMENT_PATTERN + ")"
+                    + "|(?<BRACE>" + BRACE_PATTERN + ")"
+                    + "|(?<BRACKET>" + BRACKET_PATTERN + ")"
+                    + "|(?<SEMICOLON>" + SEMICOLON_PATTERN + ")"
+                    + "|(?<STRING>" + STRING_PATTERN + ")"
+                    + "|(?<COMMENT>" + COMMENT_PATTERN + ")"
     );
 
-
+/*
+ */
 
     public static void main(String[] args) {
         launch(args);
@@ -84,10 +94,11 @@ public class CompisGUI extends Application {
         CodeArea codeArea = new CodeArea();
         // add line numbers to the left of area
         codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
-//        codeArea.setContextMenu( new DefaultContextMenu() );
+        codeArea.setContextMenu(new DefaultContextMenu());
+
         codeArea.getVisibleParagraphs().addModificationObserver
                 (
-                        new VisibleParagraphStyler<>( codeArea, this::computeHighlighting )
+                        new VisibleParagraphStyler<>(codeArea, this::computeHighlighting)
                 );
 
         // auto-indent: insert previous line's indents on enter
@@ -211,7 +222,7 @@ public class CompisGUI extends Application {
         while(matcher.find()) {
             String styleClass =
                     matcher.group("KEYWORD") != null ? "keyword" :
-                            matcher.group("PAREN") != null ? "paren" :
+//                            matcher.group("PAREN") != null ? "paren" :
                                     matcher.group("BRACE") != null ? "brace" :
                                             matcher.group("BRACKET") != null ? "bracket" :
                                                     matcher.group("SEMICOLON") != null ? "semicolon" :
@@ -226,7 +237,7 @@ public class CompisGUI extends Application {
         return spansBuilder.create();
     }
 
-    private class VisibleParagraphStyler<PS, SEG, S> implements Consumer<ListModification<? extends Paragraph<PS, SEG, S>>>
+    private static class VisibleParagraphStyler<PS, SEG, S> implements Consumer<ListModification<? extends Paragraph<PS, SEG, S>>>
     {
         private final GenericStyledArea<PS, SEG, S> area;
         private final Function<String, StyleSpans<S>> computeStyles;
@@ -256,4 +267,42 @@ public class CompisGUI extends Application {
             }
         }
     }
+    private static class DefaultContextMenu extends ContextMenu
+    {
+        private MenuItem fold, unfold, print;
+
+        public DefaultContextMenu()
+        {
+            fold = new MenuItem( "Fold selected text" );
+            fold.setOnAction( AE -> { hide(); fold(); } );
+
+            unfold = new MenuItem( "Unfold from cursor" );
+            unfold.setOnAction( AE -> { hide(); unfold(); } );
+
+            print = new MenuItem( "Print" );
+            print.setOnAction( AE -> { hide(); print(); } );
+
+            getItems().addAll( fold, unfold, print );
+        }
+
+        /**
+         * Folds multiple lines of selected text, only showing the first line and hiding the rest.
+         */
+        private void fold() {
+            ((CodeArea) getOwnerNode()).foldSelectedParagraphs();
+        }
+
+        /**
+         * Unfold the CURRENT line/paragraph if it has a fold.
+         */
+        private void unfold() {
+            CodeArea area = (CodeArea) getOwnerNode();
+            area.unfoldParagraphs( area.getCurrentParagraph() );
+        }
+
+        private void print() {
+            System.out.println( ((CodeArea) getOwnerNode()).getText() );
+        }
+    }
+
 }
