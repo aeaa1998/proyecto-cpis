@@ -1,9 +1,6 @@
 package com.company.tables;
 
-import com.company.errors.ParameterMethodRedeclaration;
-import com.company.errors.SymbolErrorsContainer;
-import com.company.errors.TableErrorsContainer;
-import com.company.errors.TypeNotDeclared;
+import com.company.errors.*;
 import com.company.visitor.VisitorTypeResponse;
 
 import java.util.ArrayList;
@@ -43,7 +40,11 @@ public class Method {
     public void addParamString(String name, String param, int column, int line){
         if (paramsStringNames.contains(name)){
             //Add the parameter error
-            TableErrorsContainer.getInstance().addError(new ParameterMethodRedeclaration(id, param, column, line));
+            TableErrorsContainer.getInstance().addError(
+                    "El parametro " + param + " ya ha sido declarado en la función " + id,
+                    column,
+                    line
+            );
         }else {
             // Add the parameter
             paramsStrings.add(param);
@@ -69,15 +70,12 @@ public class Method {
 
         //Check returnType is valid
         if (returnType == null){
-            Exception error = new TypeNotDeclared(
-                    "El método " + id,
-                    returnTypeName,
+            YAPLError error =  SymbolErrorsContainer.getInstance().addError(
+                     "El método " + id + " utiliza la clase " + returnTypeName + " la cual no esta definida",
                     column,
                     line
             );
-            SymbolErrorsContainer.getInstance().addError(
-                    error
-            );
+
             return VisitorTypeResponse.getErrorResponse(error.getMessage());
         }else{
             return returnType.toResponse();

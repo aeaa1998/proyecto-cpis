@@ -13,6 +13,10 @@ public class TypesTable {
     private TypesTable(){
         //Set base types
         types = new HashMap<>();
+        setUp();
+    }
+
+    private void setUp(){
         types.put("Object", Type.getObjectType());
         types.put("String", Type.getStringType());
         types.put("IO", Type.getIOType());
@@ -27,6 +31,11 @@ public class TypesTable {
             instance = new TypesTable();
         }
         return instance;
+    }
+
+    public void clear(){
+        types.clear();
+        setUp();
     }
 
     public void buildTables(){
@@ -69,7 +78,11 @@ public class TypesTable {
         //Handle error
         String name = type.getId();
         if(types.containsKey(name)){
-            TableErrorsContainer.getInstance().addError(new TypeRedeclarationException(name, type.getColumn(), type.getLine()));
+            TableErrorsContainer.getInstance().addError(
+                    "La clase " + name + " ya ha sido declarada previamente.",
+                    type.getColumn(),
+                    type.getLine()
+            );
         }else{
             types.put(name, type);
         }

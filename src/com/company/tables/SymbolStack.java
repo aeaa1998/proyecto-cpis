@@ -88,10 +88,9 @@ public class SymbolStack {
             return getSymbolInAnyScope(symbolId, position - 1, column, line);
         }
         SymbolErrorsContainer.getInstance().addError(
-                new Exception(
-                        "No se pudo resolver el tipo de el simbolo: " + symbolId + "\n" +
-                                "Columna: " + column + ", linea: " + line
-                )
+                "No se pudo resolver el tipo de el simbolo: " + symbolId + "\n",
+                column,
+                line
         );
         return null;
     }

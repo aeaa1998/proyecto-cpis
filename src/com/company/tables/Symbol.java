@@ -20,10 +20,9 @@ public class Symbol {
         Type associatedType = TypesTable.getInstance().getTypeByName(typeName);
         if (associatedType == null){
             SymbolErrorsContainer.getInstance().addError(
-                    new Exception(
-                            "La variable " + id + " se declaro con el tipo " + typeName + " que no ha sido declarado " + ".\n" +
-                            "Columna: " + column + ", linea: " + line
-                    )
+                    "La variable " + id + " se declaro con el tipo " + typeName + " que no ha sido declarado " + ".\n",
+                    column,
+                    line
             );
             //Return error
             return new VisitorTypeResponse(null, null);

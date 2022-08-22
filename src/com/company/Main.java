@@ -8,6 +8,8 @@ import com.company.yapl.YAPLLexer;
 import com.company.yapl.YAPLParser;
 import com.company.visitor.YAPLTypeVisitor;
 import com.company.yapl.YAPLVisitor;
+import javafx.application.Application;
+import javafx.stage.Stage;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -20,7 +22,8 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
-	// write your code here
+//        launch(args);
+	    // Write your code here
         StringBuilder content = new StringBuilder();
         try {
 //            File file = new File("./src/com/company/samples/easy.txt");
@@ -73,5 +76,7 @@ public class Main {
         }
 
         System.out.println("FELICIDADES TODO ESTA BIEN");
+
     }
+
 }

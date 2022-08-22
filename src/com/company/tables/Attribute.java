@@ -2,6 +2,7 @@ package com.company.tables;
 
 import com.company.errors.SymbolErrorsContainer;
 import com.company.errors.TypeNotDeclared;
+import com.company.errors.YAPLError;
 import com.company.visitor.VisitorTypeResponse;
 
 public class Attribute {
@@ -26,13 +27,11 @@ public class Attribute {
     public VisitorTypeResponse check(Type type){
         //Type of the attribute has not been declared
         if (type == null){
-            Exception error = new TypeNotDeclared(
-                    "El attributo " + id,
-                    typeName,
+            YAPLError error = SymbolErrorsContainer.getInstance().addError(
+                    "El atributo " + id + " utiliza la clase " + typeName + " que no se encuentra definida",
                     column,
                     line
             );
-            SymbolErrorsContainer.getInstance().addError(error);
             return VisitorTypeResponse.getErrorResponse(error.getMessage());
         }
         return type.toResponse();

@@ -168,10 +168,9 @@ public class YAPLTypeVisitor<T> extends AbstractParseTreeVisitor<T> implements Y
 			ctx.method.addParamString(id, className, column, line);
 		}else{
 			TableErrorsContainer.getInstance().addError(
-				new Exception(
-						"El parametro " + id + " no se le declaro un tipo.\n" +
-								"En la linea " + line + " y en la columna " + column + ";"
-				)
+					"El parametro " + id + " no se le declaro un tipo.",
+				column,
+				line
 			);
 		}
 		return visitChildren(ctx);

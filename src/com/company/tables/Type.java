@@ -72,24 +72,27 @@ public class Type {
         //Parent not declared
         if (parent == null){
             TableErrorsContainer.getInstance().addError(
-                    new TypeNotDeclared(
-                            "La clase " + id ,
-                            parentName,
-                            column,
-                            line
-                    )
+                    "La clase " + parentName + " no ha sido declarada la cual es usada como padre para " + id,
+                    column,
+                    line
             );
         }else{
             //It has a parent so lets start cycle check
             if (getHasCycle()){
-                TableErrorsContainer.getInstance().addError(new Exception("Hay un ciclo en la clase " + id + " de herencia."));
+                TableErrorsContainer.getInstance().addError(
+                        "Hay un ciclo en la clase " + id + " de herencia.",
+                        column,
+                        line
+                );
             }
 
             //Check if it is a inheritable parent
             if (!parent.canBeInherited){
-                TableErrorsContainer.getInstance().addError(new Exception(
-                        "La clase " + id + " hereda de " + parentName + " la cual no puede ser heredada"
-                ));
+                TableErrorsContainer.getInstance().addError(
+                        "La clase " + id + " hereda de " + parentName + " la cual no puede ser heredada",
+                        column,
+                        line
+                );
             }
 
             //Build the parent if needed
@@ -159,7 +162,11 @@ public class Type {
                 //Check declaration has been done in parent
                 if (parentAttr != null){
                     //Add error
-                    TableErrorsContainer.getInstance().addError(new AttributeRedeclaration(key, id, attribute.getColumn(), attribute.getLine()));
+                    TableErrorsContainer.getInstance().addError(
+                            "El atributo " + key +  " en la clase " + id + " ya ha sido declarada previamente.",
+                            attribute.getColumn(),
+                            attribute.getLine()
+                    );
                 }else{
                     //Attribute has not been built
 //                    attribute.build();
@@ -180,7 +187,10 @@ public class Type {
 
     public void setAttribute(Attribute attribute){
         if (attributes.get(attribute.getId()) != null){
-            TableErrorsContainer.getInstance().addError(new AttributeRedeclaration(attribute.getId(), id, attribute.getColumn(), attribute.getLine()));
+            TableErrorsContainer.getInstance().addError(
+                    "El atributo " + attribute.getId() +  " en la clase " + id + " ya ha sido declarada previamente.",
+                    attribute.getColumn(), attribute.getLine()
+            );
         }else{
             attributesOrdered.add(attribute.getId());
             attributes.put(attribute.getId(), attribute);
@@ -189,7 +199,11 @@ public class Type {
 
     public void setMethod(Method method){
         if (methods.get(method.getSignature()) != null){
-            TableErrorsContainer.getInstance().addError(new MethodRedeclaration(method.getId(), id, method.getColumn(), method.getLine()));
+            TableErrorsContainer.getInstance().addError(
+                    "El metodo " + method.getId() + " en la clase " + id + " ya ha sido declarado previamente.",
+                    method.getColumn(),
+                    method.getLine()
+            );
         }else{
             methods.put(method.getSignature(), method);
         }

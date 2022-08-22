@@ -5,24 +5,39 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class TableErrorsContainer {
-    private final ArrayList<Exception> errors;
+    private final ArrayList<YAPLError> errors;
     private static TableErrorsContainer instance;
 
     private TableErrorsContainer(){
         this.errors  = new ArrayList<>();
     }
 
-    public void addError(Exception e){
-        errors.add(e);
+    public void resetErrors(){
+        errors.clear();
+    }
+
+    public YAPLError addError(
+        String message,
+        int column,
+        int line
+    ){
+        YAPLError error = new YAPLError(message, column, line);
+        errors.add(error);
+        return error;
     }
 
     public void printStackTrace(){
-        for (Exception e : errors){
-            e.printStackTrace();
+        for (YAPLError e : errors){
+//            e.printStackTrace();
+            System.err.println("Se econtro un error.\n" + e.getMessage());
+            System.err.println("En la linea: " + e.getRow());
+            System.err.println("Y la columna: " + e.getColumn());
         }
     }
 
-    public ArrayList<Exception> getErrors(){
+
+
+    public ArrayList<YAPLError> getErrors(){
         return errors;
     }
 

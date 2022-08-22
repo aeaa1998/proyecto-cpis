@@ -119,10 +119,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                     //Return type and expression are not compatible
                     if (!returnTypeResponse.acceptsType(result)){
                         SymbolErrorsContainer.getInstance().addError(
-                                new Exception(
-                                        "El tipo esperado era: " + returnTypeResponse.getId() + " y se recibio " + resultResponse.getId() + " que no es compatible.\n" +
-                                        "Columna: " + ctx.start.getCharPositionInLine() + ", linea: " + ctx.start.getLine()
-                                )
+                        "El tipo esperado en la declaración de la función " + functionId + " : " + returnTypeResponse.getId() + " y se recibio " + resultResponse.getId() + " que no es compatible.",
+                                ctx.start.getCharPositionInLine(),
+                                ctx.start.getLine()
                         );
                     }
                 }
@@ -151,11 +150,10 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                     //Or if expected is void we just accept it
                     if (!typeObligatoryResponse.acceptsType(assignType)) {
                         SymbolErrorsContainer.getInstance().addError(
-                                new Exception(
-                                        "La propiedad " + ctx.id.getText() + " se inicializo con una expresión inválida que tiene un valor " +
-                                                assignType.getId() + " se esperaba " + typeObligatoryResponse.getId() + " en la clase " + ctx.typeScope.getId() + "\n" +
-                                                "Columna: " + ctx.value.start.getCharPositionInLine() + ", linea: " + ctx.value.start.getLine()
-                                )
+                                "La propiedad " + ctx.id.getText() + " se inicializo con una expresión inválida que tiene un valor " +
+                                        assignType.getId() + " se esperaba " + typeObligatoryResponse.getId() + " en la clase " + ctx.typeScope.getId() + "\n",
+                                ctx.value.start.getCharPositionInLine(),
+                                ctx.value.start.getLine()
                         );
                     }
                 }
@@ -194,12 +192,10 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         if (typeOfParamResponse.isError()){
             //Store the error if the type was not defined
             SymbolErrorsContainer.getInstance().addError(
-                    new TypeNotDeclared(
-                            "El parametro " + paramName + " en el método " + SymbolStack.getInstance().currentScope().getId(),
-                            paramClass,
-                            column,
-                            line
-                    )
+                    "El parametro " + paramName +  " en el método " + SymbolStack.getInstance().currentScope().getId() +
+                            " con la clase " + paramClass + " no ha sido declarado.",
+                    column,
+                    line
             );
         }else{
             //Add parameter type
@@ -227,12 +223,10 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         if (typeOfLetResponse.isError()){
             //Store the error if the type was not defined
             SymbolErrorsContainer.getInstance().addError(
-                    new TypeNotDeclared(
-                            "El válor  " + scopedLetName + " en un let en el método " + SymbolStack.getInstance().currentScope().getId(),
-                            scopedLetClass,
-                            column,
-                            line
-                    )
+                    "El valor " + scopedLetName + " en un let en el método " + SymbolStack.getInstance().currentScope().getId() + " se declaro con la clase " +
+                            scopedLetClass + " la cual no ha sido declarada",
+                    column,
+                    line
             );
         }else{
             symbolTableInLet.storeSymbol(
@@ -249,10 +243,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 //If it is not accepted
                 if (!typeOfLetResponse.acceptsType(response.getType())){
                     SymbolErrorsContainer.getInstance().addError(
-                            new Exception(
-                                "El tipo esperado era: " + typeOfLetResponse.getType().getId() + " y se recibio " + response.getId() + " que no es compatible.\n" +
-                                "Columna: " + assignExprToken.getCharPositionInLine() + ", linea: " + assignExprToken.getLine()
-                            )
+                            "En la declaración de una variable el tipo esperado era: " + typeOfLetResponse.getType().getId() + " y se recibio " + response.getId() + " que no es compatible.\n" ,
+                            assignExprToken.getCharPositionInLine(),
+                            assignExprToken.getLine()
                     );
                 }
             }
@@ -286,10 +279,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             //Here it is valid
             if (!TypesTable.getInstance().getBoolType().toResponse().acceptsType(conditionType)) {
                 SymbolErrorsContainer.getInstance().addError(
-                        new Exception(
-                                "La condición del while statement debe de ser Bool y se retornó: " + conditionType.getId() + "\n." +
-                                        "Columna: " + ctx.condition.start.getCharPositionInLine() + " linea: " + ctx.condition.start.getLine()
-                        )
+                        "La condición del while statement debe de ser Bool y se retornó: " + conditionType.getId() + "\n.",
+                        ctx.condition.start.getCharPositionInLine(),
+                        ctx.condition.start.getLine()
                 );
             }
         }
@@ -320,22 +312,19 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         Type invocatorType = invocatorTypeResponse.getType();
         if (invocatorType == null){
             SymbolErrorsContainer.getInstance().addError(
-                    new TypeNotDeclared(
-                            "En la invocación de la función " + functionIdentifier,
-                            ctx.invocator.getText(),
-                            ctx.start.getCharPositionInLine(),
-                            ctx.start.getLine()
-                    )
+                    "En la incovación de la función " + functionIdentifier + " el invocador es de tipo " + ctx.invocator.getText() +
+                        " el cual no ha sido declarado.",
+                    ctx.start.getCharPositionInLine(),
+                    ctx.start.getLine()
             );
         }
         //In case the expr is in the following format new A.function
         //It is invalid it does not matter the tree accepts it
         else if (ctx.invocator instanceof YAPLParser.ClassInstantiationExpressionContext){
             SymbolErrorsContainer.getInstance().addError(
-                new Exception(
-                    "El formato de new " + invocatorType.getId() + "." + functionIdentifier + " no es válido.\n" +
-                    "Columna: " + ctx.functionId.getCharPositionInLine() + ", linea: " + ctx.functionId.getLine()
-                )
+                    "El formato de new " + invocatorType.getId() + "." + functionIdentifier + " no es válido.\n",
+                    ctx.functionId.getCharPositionInLine(),
+                    ctx.functionId.getLine()
             );
         }
         else{
@@ -351,9 +340,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                     //In this instance it cant be null
                     if (!scopeType.acceptsType(invocatorType)){
                         SymbolErrorsContainer.getInstance().addError(
-                                new Exception(
-                                        "Se especifico la función " + functionIdentifier + " en el tipo " + scopeType.getId()
-                                )
+                                "Se especifico la función " + functionIdentifier + " en el tipo " + scopeType.getId(),
+                                functionColumn,
+                                functionLine
                         );
                     }else{
                         // If everything is correct type is set
@@ -385,10 +374,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             Method method = finalType.getMethod(functionIdentifier, paramNames);
             if (method == null){
                 SymbolErrorsContainer.getInstance().addError(
-                    new Exception(
-                        "La función " + functionIdentifier + " no ha sido declarada en la clase " +  finalType.getId() +".\n"+
-                        "Columna: " + functionColumn + ", linea: " + functionLine
-                    )
+            "La función " + functionIdentifier + " no ha sido declarada en la clase " +  finalType.getId() +".\n",
+                    functionColumn,
+                    functionLine
                 );
             }
             else{
@@ -399,10 +387,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 //Different count of params passed
                 if (method.getParamCount() != parametersPassed.size()){
                     SymbolErrorsContainer.getInstance().addError(
-                        new Exception(
-                            "La función " + functionIdentifier + " se le pasaron " + parametersPassed.size() + " se esperaban " + method.getParamCount() + ".\n" +
-                            "Columna: " + startParenthesisToken.getCharPositionInLine() + ", linea: " + startParenthesisToken.getLine()
-                        )
+                "La función " + functionIdentifier + " se le pasaron " + parametersPassed.size() + " se esperaban " + method.getParamCount() + ".\n",
+                        startParenthesisToken.getCharPositionInLine(),
+                        startParenthesisToken.getLine()
                     );
                 }else{
                     //Correct amount of parameters was passed
@@ -419,10 +406,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                             //Check parameter type is accepted
                             if (!parameterTypeExpected.acceptsType(parameterTypePassed.getType())){
                                 SymbolErrorsContainer.getInstance().addError(
-                                        new Exception(
-                                                "El tipo esperado era: " + parameterTypeExpected.getType().getId() + " y se recibio " + parameterTypePassed.getId() + " que no es compatible.\n" +
-                                                "Columna: " + parameterPassedTkn.getCharPositionInLine() + ", linea: " + parameterPassedTkn.getLine()
-                                        )
+                                        "El tipo esperado era: " + parameterTypeExpected.getType().getId() + " y se recibio " + parameterTypePassed.getId() + " que no es compatible.\n",
+                                        parameterPassedTkn.getCharPositionInLine(),
+                                        parameterPassedTkn.getLine()
                                 );
                             }
                         }
@@ -448,12 +434,10 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         Type invocatorType = TypesTable.getInstance().getTypeByName(SymbolStack.getInstance().globalScope().getId());
         if (invocatorType == null){
             SymbolErrorsContainer.getInstance().addError(
-                    new TypeNotDeclared(
-                            "En la invocación de la función " + functionIdentifier,
-                            SymbolStack.getInstance().globalScope().getId(),
-                            ctx.start.getCharPositionInLine(),
-                            ctx.start.getLine()
-                    )
+                    "En la invocación de la función " + functionIdentifier + " en el ambito de " + SymbolStack.getInstance().globalScope().getId()
+                    + " no ha sido declarado correctamente",
+                    ctx.start.getCharPositionInLine(),
+                    ctx.start.getLine()
             );
         }else{
             List<YAPLParser.ExprContext> parametersPassed = ctx.expr();
@@ -467,10 +451,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             Method method = invocatorType.getMethod(functionIdentifier, paramNames);
             if (method == null){
                 SymbolErrorsContainer.getInstance().addError(
-                        new Exception(
-                                "La función " + functionIdentifier + " no ha sido declarada en la clase " +  SymbolStack.getInstance().globalScope().getId() +".\n"+
-                                "Columna: " + functionColumn + ", linea: " + functionLine
-                        )
+                        "La función " + functionIdentifier + " no ha sido declarada en la clase " +  SymbolStack.getInstance().globalScope().getId() +".\n",
+                        functionColumn,
+                        functionLine
                 );
             }
             else{
@@ -479,10 +462,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 //Different count of params passed
                 if (method.getParamCount() != parametersPassed.size()){
                     SymbolErrorsContainer.getInstance().addError(
-                            new Exception(
-                                    "La función " + functionIdentifier + " se le pasaron " + parametersPassed.size() + " se esperaban " + method.getParamCount() + ".\n" +
-                                    "Columna: " + startParenthesisToken.getCharPositionInLine() + ", linea: " + startParenthesisToken.getLine()
-                            )
+                            "La función " + functionIdentifier + " se le pasaron " + parametersPassed.size() + " se esperaban " + method.getParamCount() + ".\n",
+                            startParenthesisToken.getCharPositionInLine(),
+                            startParenthesisToken.getLine()
                     );
                 }else{
                     //Correct amount of parameters was passed
@@ -499,10 +481,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                             //Check parameter type is accepted
                             if (!parameterTypeExpected.acceptsType(parameterTypePassed.getType())){
                                 SymbolErrorsContainer.getInstance().addError(
-                                        new Exception(
-                                                "El tipo esperado era: " + parameterTypeExpected.getId() + " y se recibio " + parameterTypePassed.getId() + " que no es compatible.\n" +
-                                                        "Columna: " + parameterPassedTkn.getCharPositionInLine() + ", linea: " + parameterPassedTkn.getLine()
-                                        )
+                                        "El tipo esperado era: " + parameterTypeExpected.getId() + " y se recibio " + parameterTypePassed.getId() + " que no es compatible.\n",
+                                        parameterPassedTkn.getCharPositionInLine(),
+                                        parameterPassedTkn.getLine()
                                 );
                             }
                         }
@@ -525,10 +506,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         VisitorTypeResponse boolTypeMust = visit(expr);
         if (!TypesTable.getInstance().getBoolType().toResponse().acceptsType(boolTypeMust.getType())){
             SymbolErrorsContainer.getInstance().addError(
-                    new Exception(
-                            "Le expresión en el not debe de ser Booleana se encontro: " + boolTypeMust.getId() + "\n" +
-                            "Columna: " + expr.start.getCharPositionInLine() + " linea: " + expr.start.getLine()
-                    )
+                    "Le expresión en el not debe de ser Booleana se encontro: " + boolTypeMust.getId() + "\n",
+                    expr.start.getCharPositionInLine(),
+                    expr.start.getLine()
             );
         }
         return TypesTable.getInstance().getBoolType().toResponse();
@@ -564,10 +544,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         SymbolTableResponse result = SymbolStack.getInstance().getSymbolInAnyScope(id, column, line);
         if (result == null){
             SymbolErrorsContainer.getInstance().addError(
-                    new Exception(
-                            "Error al asignar un valor a la variable " + id + " que no ha sido declarada.\n" +
-                            "En la linea: " + ctx.start.getLine() + ", columna: " + ctx.start.getCharPositionInLine()
-                    )
+                    "Error al asignar un valor a la variable " + id + " que no ha sido declarada.\n",
+                    ctx.start.getCharPositionInLine(),
+                    ctx.start.getLine()
             );
             return VisitorTypeResponse.getErrorResponse("Error al asignar");
         }else{
@@ -582,10 +561,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             ){
                 if(!expectedType.acceptsType(resultType.getType())){
                     SymbolErrorsContainer.getInstance().addError(
-                            new Exception(
-                                    "El tipo esperado era: " + expectedType.getId() + " y se recibio " + resultType.getId() + " que no es compatible.\n" +
-                                    "Columna: " + column + ", line: " + line
-                            )
+                            "El tipo esperado era: " + expectedType.getId() + " y se recibio " + resultType.getId() + " que no es compatible.\n",
+                            column,
+                            line
                     );
                 }
             }
@@ -604,10 +582,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
 
         if (!intResponse.acceptsType(exprResponse.getType())){
             SymbolErrorsContainer.getInstance().addError(
-                new Exception(
-                    "La expresión ~ espera que lo evaluado sea Int y se retorno " + exprResponse.getId() +"\n"+
-                    "Columna " + exprToken.getCharPositionInLine()  + ", linea " + exprToken.getLine()
-                )
+                    "La expresión ~ espera que lo evaluado sea Int y se retorno " + exprResponse.getId() +"\n",
+                    exprToken.getCharPositionInLine(),
+                    exprToken.getLine()
             );
         }
 
@@ -638,9 +615,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         Type currentType = TypesTable.getInstance().getTypeByName(current.getId());
         if (currentType == null) {
             SymbolErrorsContainer.getInstance().addError(
-                    new Exception(
-                            "Se utilizo la variable self fuera de un contexto"
-                    )
+                    "Se utilizo la variable self fuera de un contexto",
+                    ctx.start.getCharPositionInLine(),
+                    ctx.start.getLine()
             );
             return new VisitorTypeResponse(null, null);
         }
@@ -660,10 +637,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             return response.getSymbolFound().getAssociatedType(column, line);
         }
         SymbolErrorsContainer.getInstance().addError(
-            new Exception(
-                "La variable " + id + " no ha sido declarada en el contexto.\n" +
-                "Columna: " + column + ", linea: " + line
-            )
+    "La variable " + id + " no ha sido declarada en el contexto.\n",
+            column,
+            line
         );
 
         //Not resolved the id value
@@ -692,10 +668,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         //If the condition is not bool type
         if (!TypesTable.getInstance().getBoolType().toResponse().acceptsType(conditionType.getType())){
             SymbolErrorsContainer.getInstance().addError(
-                new Exception(
-                    "La condición del if statement debe de ser Bool y se retorno: " + conditionType.getId() + "\n." +
-                    "Columna: " + ctx.condition.start.getCharPositionInLine() + " linea: " + ctx.condition.start.getLine()
-                )
+                    "La condición del if statement debe de ser Bool y se retorno: " + conditionType.getId() + "\n.",
+                    ctx.condition.start.getCharPositionInLine(),
+                    ctx.condition.start.getLine()
             );
         }
 
@@ -726,11 +701,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             leftType.getId().equals("(void)")
         ){
             SymbolErrorsContainer.getInstance().addError(
-                    new Exception(
-                            "En una comparación (" + op + ")" + " ambos operadores deben de ser iguals " +
-                                    "se encontró: " + leftType.getId() + " y " + rightType.getId() + " \n" +
-                                    "Columna: " + column + " linea: " + line
-                    )
+                    "En una comparación (" + op + ")" + " ambos operadores deben de ser iguals " + "se encontró: " + leftType.getId() + " y " + rightType.getId(),
+                    column,
+                    line
             );
         }
 
@@ -740,34 +713,27 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
     private void checkIsBoolExpressionInComparison(VisitorTypeResponse type, String comparisonSign, int column, int line){
         if (!TypesTable.getInstance().getBoolType().toResponse().acceptsType(type.getType())){
             SymbolErrorsContainer.getInstance().addError(
-                    new Exception(
-                            "En una comparación (" + comparisonSign + ")" + " ambos operadores deben de ser booleanos " +
-                            "se encontró: " + type.getId() + "\n" +
-                            "Columna: " + column + " linea: " + line
-                    )
+                    "En una comparación (" + comparisonSign + ")" + " ambos operadores deben de ser booleanos " + "se encontró: " + type.getId(),
+                    column,
+                    line
             );
         }
     }
     private void checkIsIntExpression(VisitorTypeResponse type, String operation, int column, int line){
         if (!TypesTable.getInstance().getIntType().toResponse().acceptsType(type.getType())){
             SymbolErrorsContainer.getInstance().addError(
-                    new Exception(
-                            "En una operación (" + operation + ")" + " ambos operadores deben de ser Integers " +
-                                    "se encontró: " + type.getId() + "\n" +
-                                    "Columna: " + column + " linea: " + line
-                    )
+                    "En una operación (" + operation + ")" + " ambos operadores deben de ser Integers " + "se encontró: " + type.getId(),
+                    column,
+                    line
             );
         }
     }
     private boolean checkTypeExists(VisitorTypeResponse response, String id, int column, int line){
         if (response.isError()){
             SymbolErrorsContainer.getInstance().addError(
-                new TypeNotDeclared(
-                    "Cerca de la linea " + line,
-                        id,
-                        column,
-                        line
-                )
+                    "Cerca de la linea " + line + " se utiliza la clase " + id + " que no ha sido declarada.",
+                column,
+                line
             );
             return false;
         }
