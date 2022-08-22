@@ -16,18 +16,19 @@ public class Type {
     //Have the attributes ordered for knowing the offsets
     private final ArrayList<String> attributesOrdered;
     private HashMap<String, Method> methods = new HashMap<>();
-
-    public Type getParent() {
-        return parent;
-    }
-
     private Type parent;
     private CycleStatus status = CycleStatus.NONE;
     private final String parentName;
+    private ArrayList<String> casteables = new ArrayList<String>();
     private boolean built;
     private boolean canBeInherited = true;
     private int column ;
     private int line;
+
+    public int getSize() {
+        return size;
+    }
+
     //Size in bytes of the class
     private int size;
 
@@ -138,7 +139,6 @@ public class Type {
                 value =  true;
             }
             case PASS -> {
-                value =  false;
             }
         }
         return value;
@@ -148,7 +148,7 @@ public class Type {
         int parentSize = parent.size;
         int current = 0;
         for(Attribute attribute: attributes.values()){
-            current += attribute.getSize();
+            current += attribute.getSize(this);
         }
         this.size = parentSize + current;
     }
@@ -246,7 +246,9 @@ public class Type {
         }
         return null;
     }
-
+    public Type getParent() {
+        return parent;
+    }
     public Method getMethod(String name, String scope){
         if (scope.equals(id)){
             return methods.get(name);
@@ -264,6 +266,11 @@ public class Type {
             return false;
         }
         boolean accepted = this.id.equals(type.id);
+        //We will check if it is false it by a cast it can be accepted
+        if (!accepted){
+            accepted = this.casteables.contains(type.id);
+        }
+
         //It is not accepted but the type to check has a parent
         //maybe it is a lower implementation so lets check
         if (!accepted && type.parent != null){
@@ -334,6 +341,7 @@ public class Type {
     public static @NotNull Type getIntType() {
         Type type = new Type("Int", "Object");
         type.getHasCycle();
+        type.casteables.add("Bool");
         type.canBeInherited = false;
         return type;
     }
@@ -343,6 +351,7 @@ public class Type {
     public static @NotNull Type getBoolType() {
         Type type = new Type("Bool", "Object");
         type.getHasCycle();
+        type.casteables.add("Int");
         type.canBeInherited = false;
         return type;
     }

@@ -51,7 +51,18 @@ public class Attribute {
     }
     public String getId() { return id; };
 
-    public int getSize(){
+    public int getSize(Type invoker){
+        VisitorTypeResponse response;
+        if (typeName.equalsIgnoreCase("SELF_TYPE")){
+            response = check(invoker.getId());
+        }else{
+            response =  check(typeName);
+        }
+
+        if (response.getType() != null){
+            //TODO CHECK if size has been calculated
+            return response.getType().getSize();
+        }
         return 0;
     }
 
