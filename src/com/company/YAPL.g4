@@ -37,8 +37,6 @@ declaration_with_possible_assignation
 expr:
 //Invocación de función a partir de expresión
 invocator=expr (Scope type_grammar)? '.' functionId=OBJ_TYPE PARENTHESIS_START (expr (',' expr)*)? PARENTHESIS_END #scopeInvocationExpression //Done
-//Asignación de valor a un id
-| OBJ_TYPE ASSIGN expr #variableValueAsignationExpression //Done
     | functionId=OBJ_TYPE PARENTHESIS_START ( expr (',' expr)* )? PARENTHESIS_END #functionInvocationExpression //Done
     | IF condition=expr THEN expr ELSE expr FI #ifExpression //Done
     | WHILE condition=expr LOOP block=expr POOL #whileExpression //Done
@@ -62,6 +60,8 @@ invocator=expr (Scope type_grammar)? '.' functionId=OBJ_TYPE PARENTHESIS_START (
     | TRUE #boolExpression //Done
     | FALSE #boolExpression //Done
     | SELF #selfExpression //Done
+    //Asignación de valor a un id
+    | OBJ_TYPE ASSIGN expr #variableValueAsignationExpression //Done
     ;
 
 
