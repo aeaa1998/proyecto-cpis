@@ -115,8 +115,13 @@ public class Method {
         StringBuilder signature = new StringBuilder();
         if (!paramsStrings.isEmpty()){
             signature.append(" ");
+            int index = 0;
             for(String param: paramsStrings){
                 signature.append(param);
+                if (paramsStrings.size() - 1 != index){
+                    signature.append(" ");
+                }
+                index++;
             }
         }
         return id + signature.toString();

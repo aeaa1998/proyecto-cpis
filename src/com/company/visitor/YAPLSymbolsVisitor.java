@@ -9,18 +9,27 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResponse> implements YAPLVisitor<VisitorTypeResponse> {
 
+    /**
+     * First node visits the whole program
+     * @param ctx the parse tree
+     * @return [VisitorTypeResponse]
+     */
     @Override
     public VisitorTypeResponse visitProgram(YAPLParser.ProgramContext ctx) {
         //Enter the program
         return visitChildren(ctx);
     }
 
+    /**
+     * Visits a class declaration and visit the nodes
+     * @param ctx the parse tree
+     * @return [VisitorTypeResponse]
+     */
     @Override
     public VisitorTypeResponse visitClass_grammar(YAPLParser.Class_grammarContext ctx) {
         //Continue with the grammar to start
@@ -43,6 +52,11 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         return null;
     }
 
+    /**
+     * Visits a feature of a class it can be a declaration of a property or a function declaration
+     * @param ctx the parse tree
+     * @return [VisitorTypeResponse]
+     */
     @Override
     public VisitorTypeResponse visitFeatures(YAPLParser.FeaturesContext ctx) {
         //Binf values
@@ -53,6 +67,11 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         return visitChildren(ctx);
     }
 
+    /**
+     * Visits a feature of a class it can be a declaration of a property or a function declaration
+     * @param ctx the parse tree
+     * @return [VisitorTypeResponse]
+     */
     @Override
     public VisitorTypeResponse visitType_grammar(YAPLParser.Type_grammarContext ctx) {
         Type classType = null;
@@ -185,7 +204,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         String paramClass = ctx.className.getText();
         //Get from type grammar the type in case its a self
         VisitorTypeResponse typeOfParamResponse = visitType_grammar(ctx.className);
-        Type typeOfParam = typeOfParamResponse.getType();
+
         int column = ctx.start.getCharPositionInLine();
         int line = ctx.start.getLine();
         //If it is not a valid response
@@ -199,6 +218,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             );
         }else{
             //Add parameter type
+            //We add the param class as a string in case it is self_type
             symbolTableInFunction.storeSymbol(
                     new Symbol(paramName, paramClass)
             );
@@ -374,7 +394,8 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             Method method = finalType.getMethod(functionIdentifier, paramNames);
             if (method == null){
                 SymbolErrorsContainer.getInstance().addError(
-            "La función " + functionIdentifier + " no ha sido declarada en la clase " +  finalType.getId() +".\n",
+            "La función " + functionIdentifier + " no ha sido declarada en la clase " +  finalType.getId() +".\n"+
+                        "La firma que se recibio fue: " + Type.getSignature(functionIdentifier, paramNames),
                     functionColumn,
                     functionLine
                 );
@@ -451,7 +472,8 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             Method method = invocatorType.getMethod(functionIdentifier, paramNames);
             if (method == null){
                 SymbolErrorsContainer.getInstance().addError(
-                        "La función " + functionIdentifier + " no ha sido declarada en la clase " +  SymbolStack.getInstance().globalScope().getId() +".\n",
+                        "La función " + functionIdentifier + " no ha sido declarada en la clase " +  SymbolStack.getInstance().globalScope().getId() +".\n"+
+                        "Se recibio la firma: " + Type.getSignature(functionIdentifier, paramNames),
                         functionColumn,
                         functionLine
                 );
@@ -729,7 +751,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         }
     }
     private boolean checkTypeExists(VisitorTypeResponse response, String id, int column, int line){
-        if (response.isError()){
+        if (response.isError() || response.isVoid()){
             SymbolErrorsContainer.getInstance().addError(
                     "Cerca de la linea " + line + " se utiliza la clase " + id + " que no ha sido declarada.",
                 column,

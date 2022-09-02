@@ -44,6 +44,7 @@ public class Attribute {
         return line;
     }
     public VisitorTypeResponse getType(Type invoker) {
+        //In case is self_type get the moment
         if (typeName.equalsIgnoreCase("SELF_TYPE")){
             return check(invoker.getId());
         }

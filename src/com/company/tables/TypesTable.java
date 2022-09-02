@@ -2,7 +2,9 @@ package com.company.tables;
 
 import com.company.errors.TableErrorsContainer;
 import com.company.errors.TypeRedeclarationException;
+import com.company.utils.Constants;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class TypesTable {
@@ -18,7 +20,7 @@ public class TypesTable {
 
     private void setUp(){
         types.put("Object", Type.getObjectType());
-        types.put("String", Type.getStringType());
+        types.put(Constants.String, Type.getStringType());
         types.put("IO", Type.getIOType());
         types.put("Int", Type.getIntType());
         types.put("Bool", Type.getBoolType());
@@ -42,6 +44,26 @@ public class TypesTable {
         for(String key : types.keySet()){
             types.get(key).build();
         }
+        //Check it has Main class and main method
+        Type type = types.get("Main");
+        if (type == null){
+            TableErrorsContainer.getInstance().addError(
+                    "Clase Main no ha sido definida y es obligatoria",
+                    0,
+                    0
+            );
+        }else {
+            Method method = type.getMethod("main", new ArrayList<>());
+            if (method == null){
+                TableErrorsContainer.getInstance().addError(
+                        "Dentro de la clase Main la función main es obligatoria.\n" +
+                                "Con la siguiente firma: main()" ,
+                        type.getColumn(),
+                        type.getLine()
+                );
+            }
+        }
+
     }
 
     private final HashMap<String, Type> types;
@@ -55,7 +77,7 @@ public class TypesTable {
     }
 
     public Type getStringType() {
-        return types.get("String");
+        return types.get(Constants.String);
     }
 
     public Type getIOType() {

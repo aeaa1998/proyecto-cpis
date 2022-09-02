@@ -27,7 +27,8 @@ public class Main {
         StringBuilder content = new StringBuilder();
         try {
 //            File file = new File("./src/com/company/samples/easy.txt");
-            File file = new File("./src/com/company/samples/recur.cl");
+//            File file = new File("./src/com/company/samples/error_easy.txt");
+            File file = new File("./src/com/company/samples/arith.cl");
             Scanner scanner = new Scanner(file);
             while(scanner.hasNextLine()){
                 content.append(scanner.nextLine()).append("\n");

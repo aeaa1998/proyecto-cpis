@@ -115,13 +115,14 @@ public class YAPLTypeVisitor<T> extends AbstractParseTreeVisitor<T> implements Y
 	 */
 	@Override public T visitClass_property_declaration(YAPLParser.Class_property_declarationContext ctx) {
 		String id = ctx.id.getText();
+		//In a property declaration we add
 		String type = ctx.class_.getText();
 		int column = ctx.start.getCharPositionInLine();
 		int line = ctx.start.getLine();
 		//If it is self type set the type scope
-		if (type.equals(Constants.SELF_TYPE)){
-			type = ctx.typeScope.getId();
-		}
+//		if (type.equals(Constants.SELF_TYPE)){
+//			type = ctx.typeScope.getId();
+//		}
 		Attribute attr = new Attribute(id, type, column, line);
 		//Add the attribute
 		ctx.typeScope.setAttribute(attr);

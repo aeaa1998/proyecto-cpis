@@ -1,15 +1,53 @@
-class Main  {
-    main() : SELF_TYPE {
+class A {
+set_a(): Int {
+    {1;}
+};
+};
+(* here we have a infinite loop *)
+class M inherits B {
+set_b(): Int {
+    {1+a;}
+};
+};
+class B inherits C {
+set_b(): Int {
+    {1+a;}
+};
+};
+
+class C  {
+a : Int;
+set_b(): Int {
+    {1+2;}
+};
+};
+
+class Main inherits IO {
+    j: Int;
+    main() : Int {
 	{
 	    out_string((new Object).type_name().substr(4,1));
 	    out_string((isvoid self).type_name().substr(1,3));
 	    out_string("\n");
+	    if 1 then 1 else 1 fi;
+	    (let a : Int, b: String in
+        	 {
+        	 (let a : Int, b: Int in
+                     	 {
+        	        b;
+                    b + 1;
+                    });
+        	 }
+           );
+
+	    1;
 	}
     };
 
     set_a(a: Int, b: Int) : SELF_TYPE {
     {
      (new A).set_a();
+     self;
      }
     };
 };

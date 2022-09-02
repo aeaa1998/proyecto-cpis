@@ -4,6 +4,7 @@ import com.company.errors.AttributeRedeclaration;
 import com.company.errors.MethodRedeclaration;
 import com.company.errors.TableErrorsContainer;
 import com.company.errors.TypeNotDeclared;
+import com.company.utils.Constants;
 import com.company.utils.CycleStatus;
 import com.company.visitor.VisitorTypeResponse;
 import org.jetbrains.annotations.NotNull;
@@ -62,8 +63,9 @@ public class Type {
         if (built){
             return;
         }
+        built = true;
         //Parent block
-        Type parent;
+
         if (parentName != null){
             parent = TypesTable.getInstance().getTypeByName(parentName);
         }else{
@@ -78,6 +80,9 @@ public class Type {
                     line
             );
         }else{
+            //Build the parent if needed
+            parent.build();
+
             //It has a parent so lets start cycle check
             if (getHasCycle()){
                 TableErrorsContainer.getInstance().addError(
@@ -96,9 +101,8 @@ public class Type {
                 );
             }
 
-            //Build the parent if needed
-            parent.build();
-            this.parent = parent;
+
+//            this.parent = parent;
             this.depth = this.parent.depth + 1;
         }
 
@@ -145,7 +149,12 @@ public class Type {
     }
 
     private void calculateSize(){
-        int parentSize = parent.size;
+        int parentSize;
+        if (parent == null){
+            parentSize = 0;
+        }else{
+            parentSize = parent.size;
+        }
         int current = 0;
         for(Attribute attribute: attributes.values()){
             current += attribute.getSize(this);
@@ -219,20 +228,28 @@ public class Type {
         }
         return null;
     }
-
-    public Method getMethod(String name, List<String> params){
+    public static String getSignature(String name, List<String> params) {
         StringBuilder paramBuilder = new StringBuilder("");
         if (!params.isEmpty()){
             paramBuilder.append(" ");
+            int index = 0;
             for(String param: params){
                 paramBuilder.append(param);
+                if (params.size() - 1 != index){
+                    paramBuilder.append(" ");
+                }
+                index++;
             }
         }
-        Method meth = methods.get(name+paramBuilder);
+        return name+paramBuilder;
+    }
+    public Method getMethod(String name, List<String> params){
+        String sig = getSignature(name, params);
+        Method meth = methods.get(sig);
         if (meth != null){
             return meth;
         } else if (parent != null){
-            return parent.getMethod(name+paramBuilder);
+            return parent.getMethod(sig);
         }
         return null;
     }
@@ -309,6 +326,9 @@ public class Type {
     }
 
     public void fillTable(SymbolTable symbolTable){
+        if (parent != null){
+            parent.fillTable(symbolTable);
+        }
         for (String attributeName : attributesOrdered){
             //TODO: check this of sizes
             VisitorTypeResponse attr = attributes.get(attributeName).getType(this);
@@ -328,7 +348,7 @@ public class Type {
         type.built = true;
         type.getHasCycle();
         Method abortMethod = new Method("abort", "Object", 0, 0);
-        Method typeNameMethod = new Method("type_name", "String", 0, 0);
+        Method typeNameMethod = new Method("type_name", Constants.String, 0, 0);
 //        Method copy = new Method("type_name", "Object", 0, 0);
         type.setMethod(abortMethod);
         type.setMethod(typeNameMethod);
@@ -343,6 +363,7 @@ public class Type {
         type.getHasCycle();
         type.casteables.add("Bool");
         type.canBeInherited = false;
+        type.size = 4;
         return type;
     }
 
@@ -353,22 +374,16 @@ public class Type {
         type.getHasCycle();
         type.casteables.add("Int");
         type.canBeInherited = false;
-        return type;
-    }
-
-    public static @NotNull Type getVoidType() {
-        Type type = new Type("Void", "Object");
-        type.getHasCycle();
-        type.canBeInherited = false;
+        type.size = 1;
         return type;
     }
 
     public static @NotNull Type getStringType() {
-        Type type = new Type("String", "Object");
+        Type type = new Type(Constants.String, "Object");
         Method length = new Method("length", "Int", 0, 0);
-        Method concat = new Method("concat", "String", 0, 0);
-        concat.addParamString("s", "String", 0, 0);
-        Method substr = new Method("substr", "String", 0, 0);
+        Method concat = new Method("concat", Constants.String, 0, 0);
+        concat.addParamString("s", Constants.String, 0, 0);
+        Method substr = new Method("substr", Constants.String, 0, 0);
         substr.addParamString("i", "Int", 0, 0);
         substr.addParamString("l", "Int", 0, 0);
         type.setMethod(length);
@@ -376,6 +391,7 @@ public class Type {
         type.setMethod(substr);
         type.getHasCycle();
         type.canBeInherited = false;
+        type.size = 8;
         return type;
     }
 
@@ -383,10 +399,10 @@ public class Type {
         Type type = new Type("IO", "Object");
         type.getHasCycle();
         Method outString = new Method("out_string", "SELF_TYPE", 0, 0);
-        outString.addParamString("x", "String", 0, 0);
+        outString.addParamString("x", Constants.String, 0, 0);
         Method typeNameMethod = new Method("out_int", "SELF_TYPE", 0, 0);
         typeNameMethod.addParamString("x", "Int", 0 , 0);
-        Method in_string = new Method("in_string", "String", 0, 0);
+        Method in_string = new Method("in_string", Constants.String, 0, 0);
         Method in_int = new Method("in_int", "Int", 0, 0);
         type.setMethod(outString);
         type.setMethod(typeNameMethod);
