@@ -1,21 +1,42 @@
 package com.company.tables;
 
 import com.company.errors.SymbolErrorsContainer;
+import com.company.utils.MemoryType;
 import com.company.visitor.VisitorTypeResponse;
 
 public class Symbol {
-    private final String id, typeName;
-    private int scope, offset;
 
-    public Symbol(String id, String typeName){
+    private  String id, typeName;
+    private int scope = 0, offset = 0;
+    //Tells where the offset is
+    private MemoryType memoryTypePlacement;
+
+    public Symbol(String id, String typeName, MemoryType memoryTypePlacement){
         this.id = id;
         this.typeName = typeName;
+        this.memoryTypePlacement = memoryTypePlacement;
+
+    }
+
+    public void setTypeName(String name){
+        typeName = name;
     }
 
     public String getId(){
         return id;
     }
-
+    public int getOffset() { return offset; }
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+    public int getSize() {
+        VisitorTypeResponse visitorTypeResponse = getAssociatedType(0, 0 );
+        if (visitorTypeResponse.isValid()){
+            return visitorTypeResponse.getType().getTotalSize();
+        }
+        //If there was an error we return 0
+        return 0;
+    }
     public VisitorTypeResponse getAssociatedType(int column, int line){
         Type associatedType = TypesTable.getInstance().getTypeByName(typeName);
         if (associatedType == null){
@@ -29,5 +50,9 @@ public class Symbol {
         }
 
         return associatedType.toResponse();
+    }
+
+    public MemoryType getMemoryTypePlacement() {
+        return memoryTypePlacement;
     }
 }

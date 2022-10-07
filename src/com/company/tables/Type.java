@@ -6,9 +6,11 @@ import com.company.errors.TableErrorsContainer;
 import com.company.errors.TypeNotDeclared;
 import com.company.utils.Constants;
 import com.company.utils.CycleStatus;
+import com.company.utils.MemoryType;
 import com.company.visitor.VisitorTypeResponse;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 public class Type {
@@ -26,12 +28,11 @@ public class Type {
     private int column ;
     private int line;
 
-    public int getSize() {
-        return size;
-    }
-
     //Size in bytes of the class
     private int size;
+    //Size of the parent
+    private int parentSize;
+
 
     public int getDepth() {
         return depth;
@@ -117,7 +118,29 @@ public class Type {
         built = true;
     }
 
+    public int getTotalSize() {
+        return this.size + this.parentSize;
+    }
 
+    int getReferenceSize(){
+        if (!isPointer()){
+            return getTotalSize();
+        }
+        //If it is a complex structure we return the pointer
+        return Constants.ReferenceSpace;
+    }
+
+    public boolean isPointer(){
+        return !Arrays.stream(Constants.NonReferenceTypes).toList().contains(id);
+    }
+
+    public MemoryType getMemory(){
+        if (isPointer()){
+            return MemoryType.Heap;
+        }
+
+        return MemoryType.Stack;
+    }
 
     boolean getHasCycle(){
         boolean value = false;
@@ -149,17 +172,18 @@ public class Type {
     }
 
     private void calculateSize(){
-        int parentSize;
+        //The parent always will be built before
         if (parent == null){
             parentSize = 0;
         }else{
-            parentSize = parent.size;
+            parentSize = parent.getTotalSize();
         }
+        if (this.size != 0) return;
         int current = 0;
         for(Attribute attribute: attributes.values()){
             current += attribute.getSize(this);
         }
-        this.size = parentSize + current;
+        this.size = current;
     }
 
     private void checkAttributesInParents(){
@@ -328,13 +352,19 @@ public class Type {
     public void fillTable(SymbolTable symbolTable){
         if (parent != null){
             parent.fillTable(symbolTable);
+            if (SymbolTable.heapOffset != parent.getTotalSize()){
+                SymbolTable.heapOffset = parent.getTotalSize();
+            }
         }
+
+
+
         for (String attributeName : attributesOrdered){
-            //TODO: check this of sizes
+
             VisitorTypeResponse attr = attributes.get(attributeName).getType(this);
             if (attr.isValid()){
-                Symbol symbol = new Symbol(attributeName, attr.getId());
-                symbolTable.storeSymbol(symbol);
+                //All the attributes are going to be added in the heap
+                symbolTable.storeSymbol(attributeName, attr.getId(), MemoryType.Heap);
             }
 
 
@@ -343,26 +373,28 @@ public class Type {
 
     public static @NotNull
     Type getObjectType() {
-        Type type = new Type("Object", null);
+        Type type = new Type(Constants.Object, null);
         type.canBeInherited = true;
         type.built = true;
         type.getHasCycle();
-        Method abortMethod = new Method("abort", "Object", 0, 0);
+        Method abortMethod = new Method("abort", Constants.Object, 0, 0);
         Method typeNameMethod = new Method("type_name", Constants.String, 0, 0);
 //        Method copy = new Method("type_name", "Object", 0, 0);
         type.setMethod(abortMethod);
         type.setMethod(typeNameMethod);
-//        type.setMethod(copy);
+
         //Base size
-        type.size = 8;
+        type.size = Constants.BaseSpace;
+        type.parentSize = 0;
         return type;
     }
 
     public static @NotNull Type getIntType() {
-        Type type = new Type("Int", "Object");
+        Type type = new Type(Constants.Int, Constants.Object);
         type.getHasCycle();
-        type.casteables.add("Bool");
+        type.casteables.add(Constants.Bool);
         type.canBeInherited = false;
+        //4 bytes needed for the int type
         type.size = 4;
         return type;
     }
@@ -370,45 +402,50 @@ public class Type {
 
 
     public static @NotNull Type getBoolType() {
-        Type type = new Type("Bool", "Object");
+        Type type = new Type(Constants.Bool, Constants.Object);
         type.getHasCycle();
-        type.casteables.add("Int");
+        type.casteables.add(Constants.Int);
         type.canBeInherited = false;
+        // 1 byte needed for bool
         type.size = 1;
         return type;
     }
 
     public static @NotNull Type getStringType() {
-        Type type = new Type(Constants.String, "Object");
-        Method length = new Method("length", "Int", 0, 0);
+        Type type = new Type(Constants.String, Constants.Object);
+        Method length = new Method("length", Constants.Int, 0, 0);
         Method concat = new Method("concat", Constants.String, 0, 0);
         concat.addParamString("s", Constants.String, 0, 0);
         Method substr = new Method("substr", Constants.String, 0, 0);
-        substr.addParamString("i", "Int", 0, 0);
-        substr.addParamString("l", "Int", 0, 0);
+        substr.addParamString("i", Constants.Int, 0, 0);
+        substr.addParamString("l", Constants.Int, 0, 0);
         type.setMethod(length);
         type.setMethod(concat);
         type.setMethod(substr);
         type.getHasCycle();
         type.canBeInherited = false;
-        type.size = 8;
+        //Space needed for the reference
+        type.size = Constants.StringSpace;
         return type;
     }
 
     public static @NotNull Type getIOType() {
-        Type type = new Type("IO", "Object");
+        Type type = new Type(Constants.IO, Constants.Object);
         type.getHasCycle();
-        Method outString = new Method("out_string", "SELF_TYPE", 0, 0);
+        Method outString = new Method("out_string", Constants.SELF_TYPE, 0, 0);
         outString.addParamString("x", Constants.String, 0, 0);
-        Method typeNameMethod = new Method("out_int", "SELF_TYPE", 0, 0);
-        typeNameMethod.addParamString("x", "Int", 0 , 0);
+        Method typeNameMethod = new Method("out_int", Constants.SELF_TYPE, 0, 0);
+        typeNameMethod.addParamString("x", Constants.Int, 0 , 0);
         Method in_string = new Method("in_string", Constants.String, 0, 0);
-        Method in_int = new Method("in_int", "Int", 0, 0);
+        Method in_int = new Method("in_int", Constants.Int, 0, 0);
         type.setMethod(outString);
         type.setMethod(typeNameMethod);
         type.setMethod(in_string);
         type.setMethod(in_int);
         type.canBeInherited = true;
+        //It is needed a reference
+        type.size = Constants.ReferenceSpace;
+//        type.size = 0;
         return type;
     }
 }

@@ -2,6 +2,7 @@ package com.company;
 
 import com.company.errors.SymbolErrorsContainer;
 import com.company.errors.TableErrorsContainer;
+import com.company.intermedary.ThreeAddressCode;
 import com.company.tables.TypesTable;
 import com.company.visitor.YAPLSymbolsVisitor;
 import com.company.yapl.YAPLLexer;
@@ -28,7 +29,7 @@ public class Main {
         try {
 //            File file = new File("./src/com/company/samples/easy.txt");
 //            File file = new File("./src/com/company/samples/error_easy.txt");
-            File file = new File("./src/com/company/samples/arith.cl");
+            File file = new File("./src/com/company/samples/primes.cl");
             Scanner scanner = new Scanner(file);
             while(scanner.hasNextLine()){
                 content.append(scanner.nextLine()).append("\n");
@@ -76,8 +77,10 @@ public class Main {
             return;
         }
 
-        System.out.println("FELICIDADES TODO ESTA BIEN");
-
+        ThreeAddressCode TAC = symVisitor.getTAC();
+        TAC.printTAC();
+        System.out.println("\n\n\n\nFELICIDADES TODO ESTA BIEN");
     }
+
 
 }

@@ -1,25 +1,33 @@
 package com.company.visitor;
 
+import com.company.intermedary.QuadArgument;
 import com.company.tables.Type;
 import com.company.tables.TypesTable;
 
 public class VisitorTypeResponse {
     private final Type type;
     private final Exception error;
+    private QuadArgument argument;
 
     public VisitorTypeResponse(Type type, Exception error) {
         this.type = type;
         this.error = error;
+        this.argument = null;
     }
 
     public VisitorTypeResponse(Type type) {
         this.type = type;
         this.error = null;
+        this.argument = null;
     }
 
-    public VisitorTypeResponse(Exception error) {
-        this.type = null;
-        this.error = error;
+    public VisitorTypeResponse setArgument(QuadArgument argument){
+        this.argument = argument;
+        return this;
+    }
+
+    public QuadArgument getArgument() {
+        return argument;
     }
 
     public Type getType() {

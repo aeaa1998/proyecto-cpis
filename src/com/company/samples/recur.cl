@@ -40,3 +40,4 @@ class Main inherits IO {
 	}
     };
 };
+

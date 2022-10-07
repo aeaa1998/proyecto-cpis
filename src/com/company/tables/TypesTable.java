@@ -19,11 +19,11 @@ public class TypesTable {
     }
 
     private void setUp(){
-        types.put("Object", Type.getObjectType());
+        types.put(Constants.Object, Type.getObjectType());
         types.put(Constants.String, Type.getStringType());
-        types.put("IO", Type.getIOType());
-        types.put("Int", Type.getIntType());
-        types.put("Bool", Type.getBoolType());
+        types.put(Constants.IO, Type.getIOType());
+        types.put(Constants.Int, Type.getIntType());
+        types.put(Constants.Bool, Type.getBoolType());
     }
 
     private static TypesTable instance;
@@ -69,23 +69,19 @@ public class TypesTable {
     private final HashMap<String, Type> types;
 
     public Type getBoolType() {
-        return types.get("Bool");
+        return types.get(Constants.Bool);
     }
 
     public Type getIntType() {
-        return types.get("Int");
+        return types.get(Constants.Int);
     }
 
     public Type getStringType() {
         return types.get(Constants.String);
     }
 
-    public Type getIOType() {
-        return types.get("IO");
-    }
-
     public Type getObjectType() {
-        return types.get("Object");
+        return types.get(Constants.Object);
     }
 
     public Type getTypeByName(String name) {

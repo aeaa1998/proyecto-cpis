@@ -1,6 +1,7 @@
 package com.company.tables;
 
 import com.company.errors.*;
+import com.company.utils.Constants;
 import com.company.visitor.VisitorTypeResponse;
 
 import java.util.ArrayList;
@@ -67,7 +68,6 @@ public class Method {
 
 
     public VisitorTypeResponse check(Type returnType){
-
         //Check returnType is valid
         if (returnType == null){
             YAPLError error =  SymbolErrorsContainer.getInstance().addError(
@@ -97,7 +97,7 @@ public class Method {
     public VisitorTypeResponse getReturnType(Type invoker) {
 //        if (!built){
             //If it is self return the invoker
-            if (this.returnTypeName.equalsIgnoreCase("SELF_TYPE")){
+            if (this.returnTypeName.equalsIgnoreCase(Constants.SELF_TYPE)){
                 return check(invoker.getId());
             }else {
                 return check(returnTypeName);

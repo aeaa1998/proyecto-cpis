@@ -18,19 +18,34 @@ public class SymbolStack {
     }
 
     public SymbolTable addClassScope(String id){
-        SymbolTable table = new SymbolTable(id, true);
+        SymbolTable nullableCurrentScope = safeCurrentScope();
+        int offset = 0;
+        if (nullableCurrentScope != null){
+            //if there is a scope present add the offset else is 0
+            offset = nullableCurrentScope.offset;
+        }
+        SymbolTable table = new SymbolTable(id, true, offset);
         stack.add(table);
         return table;
     }
 
     public SymbolTable addFunctionScope(String id){
-        SymbolTable table = new SymbolTable(id, false);
+        //We dont need to check if there is a scope or not there will always be a scope here
+        SymbolTable table = new SymbolTable(id, false, currentScope().offset);
         stack.add(table);
         return table;
     }
 
     public SymbolTable addLetScope(String id){
-        SymbolTable table = new SymbolTable(currentScope().getId()+"_"+id, false);
+        //We dont need to check if there is a scope or not there will always be a scope here
+        SymbolTable table = new SymbolTable(currentScope().getId()+"_"+id, false, currentScope().offset);
+        stack.add(table);
+        return table;
+    }
+
+    public SymbolTable addBracketScope(){
+        //We dont need to check if there is a scope or not there will always be a scope here
+        SymbolTable table = new SymbolTable(currentScope().getId()+"_"+"bracket", false, currentScope().offset);
         stack.add(table);
         return table;
     }
@@ -39,12 +54,21 @@ public class SymbolStack {
         return stack.peek();
     }
 
+    public SymbolTable safeCurrentScope(){
+         try {
+             return currentScope();
+        } catch (Exception e){
+             return null;
+        }
+    }
+
     public SymbolTable globalScope(){
         return stack.firstElement();
     }
 
-    public void removeCurrentScope(){
-        stack.pop();
+    public void removeCurrentScope(boolean deletes){
+        SymbolTable table = stack.pop();
+        if (deletes) table.cleanOffsets();
     }
 
     private SymbolTableResponse getSymbolFromTable(String symbolId, SymbolTable table, int column, int line){

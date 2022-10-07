@@ -3,6 +3,7 @@ package com.company.tables;
 import com.company.errors.SymbolErrorsContainer;
 import com.company.errors.TypeNotDeclared;
 import com.company.errors.YAPLError;
+import com.company.utils.Constants;
 import com.company.visitor.VisitorTypeResponse;
 
 public class Attribute {
@@ -45,7 +46,7 @@ public class Attribute {
     }
     public VisitorTypeResponse getType(Type invoker) {
         //In case is self_type get the moment
-        if (typeName.equalsIgnoreCase("SELF_TYPE")){
+        if (typeName.equalsIgnoreCase(Constants.SELF_TYPE)){
             return check(invoker.getId());
         }
         return check(typeName);
@@ -54,15 +55,19 @@ public class Attribute {
 
     public int getSize(Type invoker){
         VisitorTypeResponse response;
-        if (typeName.equalsIgnoreCase("SELF_TYPE")){
+        //Get the type
+        if (typeName.equalsIgnoreCase(Constants.SELF_TYPE)){
             response = check(invoker.getId());
         }else{
             response =  check(typeName);
         }
-
-        if (response.getType() != null){
-            //TODO CHECK if size has been calculated
-            return response.getType().getSize();
+        Type responseType = response.getType();
+        //It there is space return it
+        if (responseType != null){
+            //Build it if it is needed
+            responseType.build();
+            //This will be called to know the space so just return the reference space
+            return response.getType().getReferenceSize();
         }
         return 0;
     }
