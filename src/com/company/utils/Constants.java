@@ -11,10 +11,13 @@ public class Constants {
     static public final String IO  = "IO";
     static public final String String  = "String";
     static public final int BaseSpace = 0;
+    static public final String classNameValue = "class name";
     //Space need for complex structures
     //We need the space for the address
-    static public final int ReferenceSpace = 8;
+    //32 bits
+    static public final int ReferenceSpace = 4;
     static public final int StringSpace = 255;
 
     static public final String[] NonReferenceTypes = { Int, Bool };
+    static public final String[] SpecialFunctions = { "out_string", "in_string", "out_int", "in_int" };
 }

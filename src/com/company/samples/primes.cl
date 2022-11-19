@@ -8,7 +8,7 @@ class Main inherits IO {
   
   testee : Int <- out;	-- testee is a number to be tested for primeness.   
   divisor : Int;	-- divisor is a number which may factor testee.
-  stop : Int <- 500;	-- stop is an arbitrary value limiting testee. 	
+  stop : Int <- 500;	-- stop is an arbitrary value limiting testee.
 
   main() : Object {	-- main() is an atrophied method so we can parse. 
      {

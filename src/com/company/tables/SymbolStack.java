@@ -2,11 +2,14 @@ package com.company.tables;
 
 import com.company.errors.SymbolErrorsContainer;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 
 public class SymbolStack {
     private final Stack<SymbolTable> stack = new Stack<>();
+    private final ArrayList<SymbolTable> deletedStacks = new ArrayList<>();
     private static SymbolStack instance;
     private SymbolStack(){ };
 
@@ -50,6 +53,8 @@ public class SymbolStack {
         return table;
     }
 
+
+
     public SymbolTable currentScope(){
         return stack.peek();
     }
@@ -68,7 +73,14 @@ public class SymbolStack {
 
     public void removeCurrentScope(boolean deletes){
         SymbolTable table = stack.pop();
-        if (deletes) table.cleanOffsets();
+        if (deletes) {
+            table.cleanOffsets();
+            deletedStacks.clear();
+        }
+        else {
+            //If it is soft delete
+            deletedStacks.add(table);
+        }
     }
 
     private SymbolTableResponse getSymbolFromTable(String symbolId, SymbolTable table, int column, int line){
@@ -97,6 +109,16 @@ public class SymbolStack {
         return null;
     }
 
+    public Symbol getSymbolInDeleted(String symbolId){
+        for (int i = 0; i < deletedStacks.size(); i++) {
+            Symbol f = deletedStacks.get(i).getSymbolByName(symbolId);
+            if (f != null){
+                return f;
+            }
+        }
+        return null;
+    }
+
     public SymbolTableResponse getSymbolInAnyScope(String symbolId, int column, int line){
         SymbolTableResponse response = getSymbolFromTable(symbolId, currentScope(), column, line);
 
@@ -119,6 +141,24 @@ public class SymbolStack {
         return null;
     }
 
+    public ArrayList<String> getAllSymbolsFromGlobalToCurrentAndDeleted(){
+        ArrayList<String> located = getSymbolsInPosition(stack.size() - 1);
+        //We add the deleted
+        for (SymbolTable t:
+                deletedStacks) {
+            located.addAll(new ArrayList<>(t.getSymbolOrder()));
+        }
+        return located;
+    }
 
+    private ArrayList<String> getSymbolsInPosition(int position){
+        SymbolTable currentScope = stack.get(position);
+        ArrayList<String> response = new ArrayList<>(currentScope.getSymbolOrder());
+        if (currentScope.getId().equals(globalScope().getId())){
+            return response;
+        }
+        response.addAll(getSymbolsInPosition(position-1));
+        return response;
+    }
 
 }

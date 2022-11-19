@@ -7,7 +7,9 @@ import java.util.HashMap;
 
 public class SymbolTable {
     public static int stackOffset = 0;
-    public static int heapOffset = 0;
+    public static int maxStackOffset = 0;
+    //This is the initial offset always
+    public static int heapOffset = 4;
     private String id;
     //delimiter
     int offset = 0;
@@ -16,6 +18,11 @@ public class SymbolTable {
     boolean isClass;
 
     private final HashMap<String, Symbol> symbols = new HashMap<>();
+
+    public ArrayList<String> getSymbolOrder() {
+        return symbolOrder;
+    }
+
     //We will have the order of the symbols
     private final ArrayList<String> symbolOrder = new ArrayList<>();
 
@@ -38,6 +45,7 @@ public class SymbolTable {
         storeSymbol(temporalName, typeName, memory);
 
         temporalCounter += 1;
+        temporalCounter = temporalCounter % 3;
         return this.getSymbolByName(temporalName);
     }
 
@@ -45,14 +53,19 @@ public class SymbolTable {
         symbols.put(temporal.getId(), temporal);
         symbolOrder.add(temporal.getId());
 
+        //if it is placed in the heap we use the total size
         if (temporal.getMemoryTypePlacement() == MemoryType.Heap){
             temporal.setOffset(heapOffset);
             //We add the full size
-            heapOffset += temporal.getAssociatedType(0, 0).getType().getReferenceSize();
+//            heapOffset += temporal.getAssociatedType(0, 0).getType().getReferenceSize();
+            heapOffset += temporal.getAssociatedType(0, 0).getType().getTotalSize();
         }else{
             temporal.setOffset(stackOffset);
             //We add the full size
             stackOffset += temporal.getAssociatedType(0, 0).getType().getReferenceSize();
+            if (stackOffset > maxStackOffset){
+                maxStackOffset = stackOffset;
+            }
         }
         return this.getSymbolByName(temporal.getId());
     }
@@ -100,9 +113,9 @@ public class SymbolTable {
             }else{
                 stackOffset -= currentSymbol.getAssociatedType(0, 0).getType().getReferenceSize();
             }
-
         }
-
+        stackOffset  = 0;
+        heapOffset = 4;
     }
 
     public String getId() {

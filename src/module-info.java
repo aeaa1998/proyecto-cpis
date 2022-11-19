@@ -8,5 +8,6 @@ module $MODULE_NAME$ {
     requires org.fxmisc.flowless;
     requires org.fxmisc.undo;
     requires reactfx;
+    requires kotlin.stdlib;
     opens com.company;
 }

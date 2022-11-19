@@ -1,5 +1,6 @@
 package com.company;
 
+import com.company.codegen.CodeBlock;
 import com.company.errors.SymbolErrorsContainer;
 import com.company.errors.TableErrorsContainer;
 import com.company.intermedary.ThreeAddressCode;
@@ -16,6 +17,9 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
 import java.util.Scanner;
 
 //TODO LIST: Add casting
@@ -29,7 +33,11 @@ public class Main {
         try {
 //            File file = new File("./src/com/company/samples/easy.txt");
 //            File file = new File("./src/com/company/samples/error_easy.txt");
-            File file = new File("./src/com/company/samples/primes.cl");
+//            File file = new File("./src/com/company/samples/cool.cl");
+//            File file = new File("./src/com/company/samples/arith.cl");
+//            File file = new File("./src/com/company/samples/primes.cl");
+//            File file = new File("./src/com/company/samples/recur.cl");
+            File file = new File("./src/com/company/samples/list.cl");
             Scanner scanner = new Scanner(file);
             while(scanner.hasNextLine()){
                 content.append(scanner.nextLine()).append("\n");
@@ -78,9 +86,37 @@ public class Main {
         }
 
         ThreeAddressCode TAC = symVisitor.getTAC();
-        TAC.printTAC();
+        String intermediateCode = TAC.printTAC();
+        System.out.println(intermediateCode);
+        createFile("intermediate_code.txt", intermediateCode);
+        List<CodeBlock> code = TAC.generateCode();
+        StringBuilder codeBuilder = new StringBuilder();
+        System.out.println("\n\n\n\nFELICIDADES TODO ESTA BIEN\n\n\n\n");
+        for (CodeBlock c:
+             code) {
+            codeBuilder
+                    .append("\t".repeat(Math.max(0, c.getTab())));
+            codeBuilder
+                    .append(c.getBlock()).append("\n");
+        }
+        createFile("target_code.txt", codeBuilder.toString());
         System.out.println("\n\n\n\nFELICIDADES TODO ESTA BIEN");
     }
 
+    public static void createFile(String fileName, String content) {
+        try {
+            File myObj = new File(fileName);
+            if (myObj.createNewFile()) {
+//                System.out.println("File created: " + myObj.getName());
+            } else {
+//                System.out.println("File already exists.");
+            }
+            FileWriter myWriter = new FileWriter(fileName);
+            myWriter.write(content);
+            myWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 }

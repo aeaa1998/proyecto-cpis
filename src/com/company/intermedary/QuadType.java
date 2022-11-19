@@ -1,9 +1,10 @@
 package com.company.intermedary;
 
 public enum QuadType {
-    Label, Assign, Return, IsVoid, Plus, Minus, Division,
-    Multiply, If, Else, Call, goTo, Not, SmallNegation, AssignSpaceHeap, AssignSpaceStack, Parameter,
-    Smaller, SmallerOrEqual, Equal
+    Label, Assign, Return, ReturnAddress, IsVoid, Plus, Minus, Division,
+    Multiply, If, Else, Call, goTo, Not, SmallNegation, AssignSpaceHeap, AssignSpaceStack, Parameter, NotifyParamsFunction,
+    Smaller, SmallerOrEqual, Equal,
+    Comment, RegistersToUse, RegistersToRestore, CopyString, Data, VTable, LoadNewHeap, SaveAr, LoadAr, CopyStringName;
     ;
 
     public static QuadType getOperator(String op){
@@ -56,6 +57,7 @@ public enum QuadType {
             case AssignSpaceHeap -> representation = "assign_space_heap";
             case AssignSpaceStack -> representation = "assign_space_stack";
             case Parameter -> representation = "param";
+            case Comment ->   representation = "#";
         }
         return representation;
     }

@@ -7,6 +7,15 @@ import com.company.visitor.VisitorTypeResponse;
 public class Quadruplets {
     //The operator
     private QuadType operator;
+
+    public void setArg1(QuadArgument arg1) {
+        this.arg1 = arg1;
+    }
+
+    public void setArg2(QuadArgument arg2) {
+        this.arg2 = arg2;
+    }
+
     //Each of the arguments
     private QuadArgument arg1, arg2;
     //The result temporal or symbol
@@ -37,6 +46,7 @@ public class Quadruplets {
     public QuadArgument getArg1() {
         return arg1;
     }
+
 
     public QuadArgument getArg2() {
         return arg2;

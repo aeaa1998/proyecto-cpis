@@ -5,25 +5,34 @@ import com.company.intermedary.QuadArgument;
 import com.company.intermedary.QuadType;
 import com.company.intermedary.Quadruplets;
 import com.company.intermedary.ThreeAddressCode;
+import com.company.registers.Register;
 import com.company.tables.*;
 import com.company.utils.Constants;
 import com.company.utils.MemoryType;
 import com.company.yapl.YAPLParser;
 import com.company.yapl.YAPLVisitor;
+import kotlin.Pair;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
 
+
 public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResponse> implements YAPLVisitor<VisitorTypeResponse> {
-    private final ThreeAddressCode TAC = new ThreeAddressCode();
+
     private final ArrayList<Quadruplets> quadsPropertyForClass = new ArrayList<>();
+    private final ArrayList<Quadruplets> methodActivationRecordsForClass = new ArrayList<>();
+
+    public final ArrayList<Quadruplets> dataSectionQuads = new ArrayList<>();
+    public final ArrayList<Quadruplets> vTableSectionQuads = new ArrayList<>();
+    private final ThreeAddressCode TAC = new ThreeAddressCode(dataSectionQuads, vTableSectionQuads);
     int ifCounter = 0;
     int whileCounter = 0;
     int tabCounter = 0;
+    int stringCounter = 0;
 
     public ThreeAddressCode getTAC() { return TAC; }
 
@@ -35,7 +44,9 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
     @Override
     public VisitorTypeResponse visitProgram(YAPLParser.ProgramContext ctx) {
         //Enter the program
-        return visitChildren(ctx);
+        VisitorTypeResponse response = visitChildren(ctx);
+//        TAC.addQuadsFirst(methodActivationRecordsForClass);
+        return response;
     }
 
     /**
@@ -47,11 +58,21 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
     public VisitorTypeResponse visitClass_grammar(YAPLParser.Class_grammarContext ctx) {
         //Continue with the grammar to start
         String className = ctx.className.getText();
+        vTableSectionQuads.add(
+                new Quadruplets(
+                        QuadType.VTable,
+                        QuadArgument.createConstantArgument(className + "_vtable:"),
+                        null,
+                        null,
+                    1
+                        )
+        );
         Type type = TypesTable.getInstance().getTypeByName(className);
         SymbolStack stack = SymbolStack.getInstance();
         //Add current class scope
         SymbolTable table = stack.addClassScope(className);
         type.fillTable(table);
+        type.fillTableQuads(vTableSectionQuads);
         //Set the type
         if(ctx.features() != null){
             ctx.features().typeScope = type;
@@ -60,7 +81,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         visitChildren(ctx);
          //Escape the scope
         //TODO: here implement
-
+        TAC.addComment("Defining new class " + className, tabCounter);
         TAC.addQuad(
                 new Quadruplets(
                         QuadType.Label,
@@ -71,6 +92,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 )
         );
         tabCounter += 1;
+        //SPACE of the class
         TAC.addQuad(
                 new Quadruplets(
                         QuadType.AssignSpaceHeap,
@@ -80,16 +102,78 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                         tabCounter
                 )
         );
+
+
+        quadsPropertyForClass.add(
+                new Quadruplets(
+                        QuadType.Comment,
+                        QuadArgument.createConstantArgument("Declaring name value"),
+                        null,
+                        null,
+                        tabCounter
+                )
+        );
+
+        //Success case
+        String name = "string"+String.valueOf(stringCounter);
+        stringCounter+=1;
+        int length = SymbolStack.getInstance().globalScope().getId().length();
+
+        quadsPropertyForClass.add(
+                new Quadruplets(
+                        QuadType.CopyStringName,
+                        QuadArgument.createConstantArgument(name),
+                        QuadArgument.createConstantArgument(String.valueOf(length)),
+                        //Copy on the name
+                        SymbolStack.getInstance().globalScope().getSymbolByName(Constants.classNameValue),
+                        tabCounter
+                )
+        );
+
+
+
+        dataSectionQuads.add(
+                new Quadruplets(
+                        QuadType.Data,
+                        QuadArgument.createConstantArgument(name),
+                        QuadArgument.createConstantArgument("\""+SymbolStack.getInstance().globalScope().getId()+"\""),
+                        null,
+                        1
+                )
+        );
+
         for (Quadruplets quadClass: quadsPropertyForClass) {
             quadClass.setTab(tabCounter);
             TAC.addQuad(quadClass);
         }
+
+        TAC.addQuad(
+                new Quadruplets(
+                        QuadType.ReturnAddress,
+                        QuadArgument.createConstantArgument(MemoryType.Heap.getName()),
+                        QuadArgument.createConstantArgument(String.valueOf(type.getTotalSize())),
+                        null,
+                        tabCounter
+                )
+        );
+
+
+        //HERE WE FINISH CLASS INSTANCE
+
+
+        for (Quadruplets arQuad: methodActivationRecordsForClass) {
+            TAC.addQuad(arQuad);
+        }
+
+
+
         tabCounter -= 1;
         stack.removeCurrentScope(true);
         //assure
         SymbolTable.heapOffset = 0;
         SymbolTable.stackOffset = 0;
         quadsPropertyForClass.clear();
+        methodActivationRecordsForClass.clear();
 
         //Returns void
         return null;
@@ -135,13 +219,36 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
 
     @Override
     public VisitorTypeResponse visitClass_function_declaration(YAPLParser.Class_function_declarationContext ctx) {
-        //TODO: Add activation register
+        String functionId = ctx.id.getText();
         //A function declaration requires a new element in the stack
         SymbolStack stack = SymbolStack.getInstance();
-        String functionId = ctx.id.getText();
-        //The name of the stack if with the name of the function
-        stack.addFunctionScope(functionId);
 
+
+
+        //Then add the space for the machine state
+        Quadruplets saveAr = new Quadruplets(QuadType.SaveAr, null, null, null, 1);
+        Quadruplets loadAr = new Quadruplets(QuadType.LoadAr, null, null, null, 1);
+        Quadruplets stackMachineStateQuad = new Quadruplets(QuadType.AssignSpaceStack, null, null, null, 1);
+        Quadruplets stackMachineStateQuadList = new Quadruplets(QuadType.RegistersToUse, null, null, null, 1);
+        //From here
+        TAC.addQuad(
+                new Quadruplets(
+                        QuadType.Label,
+                        QuadArgument.createLabelRefArgument(stack.globalScope().getId() + "_"+ functionId + "_state_save"),
+                        null,
+                        null,
+                        0
+                )
+        );
+
+        TAC.addQuad(stackMachineStateQuad);
+        TAC.addQuad(stackMachineStateQuadList);
+        TAC.addQuad(new Quadruplets(QuadType.Return, null, null, null, 0));
+        //TO HERE ARE STATES
+
+
+
+        TAC.addComment("Declaring new function " + functionId, tabCounter);
         // Add new wuad with just with the label
 
         TAC.addQuad(
@@ -155,6 +262,39 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         );
 
         tabCounter += 1;
+        TAC.addQuad(saveAr);
+        TAC.addQuad(new Quadruplets(QuadType.LoadNewHeap, null, null, null, tabCounter));
+
+        //Add first space of ar
+        int currentStack = SymbolTable.stackOffset;
+        Quadruplets stackMachineArQuad = new Quadruplets(QuadType.AssignSpaceStack, null, null, null, tabCounter);
+        //Add the activation records as a separate function
+        methodActivationRecordsForClass.add(
+                new Quadruplets(
+                        QuadType.Label,
+                        QuadArgument.createLabelRefArgument(stack.globalScope().getId() + "_"+ functionId + "_ar_create"),
+                        null,
+                        null,
+                        0
+                )
+        );
+        methodActivationRecordsForClass.add(TAC.createComment("Adding space for the parameters + body", 1));
+        methodActivationRecordsForClass.add(stackMachineArQuad);
+        methodActivationRecordsForClass.add(new Quadruplets(QuadType.Return, null, null, null, 0));
+
+
+        //The name of the stack if with the name of the function
+        stack.addFunctionScope(functionId);
+
+
+        //Store the heap address
+        stack.currentScope().storeTemporal(Register.heapRegister.getId(), Constants.Int, MemoryType.Stack);
+//        //Store the return address
+//        stack.currentScope().storeTemporal(Register.registerReturnAddress.getId(), Constants.Int, MemoryType.Stack);
+
+
+
+
         //Return Type of return statement
         VisitorTypeResponse returnTypeResponse = visitType_grammar(ctx.return_type);
         Type returnType = returnTypeResponse.getType();
@@ -162,6 +302,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         //Get the params
         List<YAPLParser.DeclarationContext> declarations = ctx.declaration();
         ArrayList<String> paramsStrings = new ArrayList<>();
+        ArrayList<Symbol> paramsSymbols = new ArrayList<>();
         //Now go to the parameters binding
         for(YAPLParser.DeclarationContext declaration : declarations){
             declaration.typeScope = ctx.typeScope;
@@ -170,6 +311,8 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             visitDeclaration(declaration);
             //Add param string type
             paramsStrings.add(declaration.className.getText());
+            //Store the current symbol
+            paramsSymbols.add(SymbolStack.getInstance().currentScope().getSymbolByName(declaration.id.getText()));
         }
 
         //Method get
@@ -179,6 +322,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
 
         //Bind each expression
         List<YAPLParser.ExprContext> expressions = ctx.expr();
+        Quadruplets returnQuad = null;
         for (int i = 0; i < expressions.size(); i++){
             YAPLParser.ExprContext exprContext = expressions.get(i);
             exprContext.typeScope = ctx.typeScope;
@@ -198,39 +342,116 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                                 ctx.start.getLine()
                         );
                     }else{
-
-                        //Create temporal
-                        //The returned value will be placed in the stack
-                        Symbol returnTemporal = SymbolStack.getInstance().currentScope().storeTemporal(resultResponse.getId(), MemoryType.Stack);
-
-                        //Function is valid
-                        TAC.addQuad(
-                                new Quadruplets(
-                                        QuadType.Assign,
-                                        resultResponse.getArgument(),
-                                        null,
-                                        returnTemporal,
-                                        tabCounter
-                                )
-                        );
-
-                        TAC.addQuad(
-                                new Quadruplets(
+                        //Store the symbols in the params
+                        currentMethod.storeSymbolsOfParams(paramsSymbols);
+                        returnQuad = new Quadruplets(
                                         QuadType.Return,
-                                        QuadArgument.createSymbolArgument(returnTemporal),
-                                        null,
-                                        //TODO: Check where to return this
+                                        resultResponse.getArgument(),
+                                        QuadArgument.createConstantArgument(functionId),
                                         null,
                                         tabCounter
-                                )
-                        );
+                                );
 
                     }
                 }
 
             }
         }
+
+        ArrayList<String> symOrder = stack.getAllSymbolsFromGlobalToCurrentAndDeleted();
+        int numberOfSymbolWords = symOrder.size();
+        //We add another 4 extras for the ra register
+        int totalSize = SymbolTable.stackOffset-currentStack+4;
+        currentMethod.stackSize = Integer.min(16, (numberOfSymbolWords+1)*4);
+        stackMachineStateQuad.setArg1(
+                QuadArgument.createConstantArgument(String.valueOf(currentMethod.stackSize))
+        );
+
+        stackMachineArQuad.setArg1(
+                QuadArgument.createConstantArgument(String.valueOf(totalSize))
+        );
+
+        currentMethod.totalSize = totalSize;
+
+        ArrayList<Symbol> symbolsToRestore = new ArrayList<>();
+        for (String symId: symOrder) {
+            SymbolTableResponse symbolResponse = stack.getSymbolInAnyScope(symId, 0 ,0);
+            if (symbolResponse != null){
+                symbolsToRestore.add(symbolResponse.getSymbolFound());
+            }else{
+                symbolsToRestore.add(stack.getSymbolInDeleted(symId));
+            }
+
+        }
+
+        stackMachineStateQuadList.setArg1(
+                QuadArgument.createSymbolList(symbolsToRestore)
+        );
+        TAC.addQuad(loadAr);
+        //Return statement must be before
+        if (returnQuad != null) {
+            TAC.addComment("We are going to assign the response", tabCounter);
+            TAC.addQuad(returnQuad);
+        }
+        loadAr.setArg1(QuadArgument.createConstantArgument(String.valueOf(totalSize-4)));
+
+        saveAr.setArg1(QuadArgument.createConstantArgument(String.valueOf(totalSize-4)));
+
+        ///MORE STATE
+
+        Quadruplets stackMachineStateQuadListRestore = new Quadruplets(QuadType.RegistersToRestore, null, null, null, 1);
+        Quadruplets stackMachineStateQuadListRestoreSpace =  new Quadruplets(
+                QuadType.AssignSpaceStack,
+                null,
+                null,
+                null,
+                1
+        );
+
+        //FROM HERE
+        TAC.addQuad(
+                new Quadruplets(
+                        QuadType.Label,
+                        QuadArgument.createLabelRefArgument(stack.globalScope().getId() + "_"+ functionId + "_state_restore"),
+                        null,
+                        null,
+                        0
+                )
+        );
+        //Add the resotration process
+        TAC.addQuad(stackMachineStateQuadListRestore);
+        //Remove space of the symbols to save for state
+        TAC.addQuad(stackMachineStateQuadListRestoreSpace);
+        TAC.addQuad(new Quadruplets(QuadType.Return, null, null, null, 0));
+        //TO HERE ARE STATES
+
+
+        stackMachineStateQuadListRestoreSpace.setArg1(QuadArgument.createConstantArgument(String.valueOf(-currentMethod.stackSize)));
+        stackMachineStateQuadListRestore.setArg1(QuadArgument.createSymbolList(symbolsToRestore));
+
         tabCounter -= 1;
+        //De activation records
+        methodActivationRecordsForClass.add(
+                new Quadruplets(
+                        QuadType.Label,
+                        QuadArgument.createLabelRefArgument(stack.globalScope().getId() + "_"+ functionId + "_ar_remove"),
+                        null,
+                        null,
+                        0
+                )
+        );
+        methodActivationRecordsForClass.add(TAC.createComment("removing space for the parameters + body", 1));
+        methodActivationRecordsForClass.add(
+                new Quadruplets(
+                        QuadType.AssignSpaceStack,
+                        QuadArgument.createConstantArgument(String.valueOf(-totalSize)),
+                        null,
+                        null,
+                        1
+                )
+        );
+        methodActivationRecordsForClass.add(new Quadruplets(QuadType.Return, null, null, null, 0));
+
         //Remove the stack created
         stack.removeCurrentScope(true);
         //Return void
@@ -239,12 +460,17 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
 
     @Override
     public VisitorTypeResponse visitClass_property_declaration(YAPLParser.Class_property_declarationContext ctx) {
+
         VisitorTypeResponse typeObligatoryResponse = visitType_grammar(ctx.class_);
         //Check type exists and is valid
         if (checkTypeExists(typeObligatoryResponse, ctx.class_.getText(), ctx.class_.start.getCharPositionInLine(), ctx.class_.start.getLine())) {
             //Its being assigned
             if (ctx.ASSIGN() != null) {
+//                TAC.setToHolder();
+//                TAC.quads = quadsPropertyForClass;
                 VisitorTypeResponse assignTypeResponse = visit(ctx.value);
+//                quadsPropertyForClass = TAC.quads;
+//                TAC.reverseHolder();
                 Type assignType = assignTypeResponse.getType();
                 Token startTkn = ctx.value.start;
                 if (checkTypeExists(assignTypeResponse, "N/A", startTkn.getCharPositionInLine(), startTkn.getLine())) {
@@ -258,6 +484,15 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                                 ctx.value.start.getLine()
                         );
                     }else{
+                        quadsPropertyForClass.add(
+                            new Quadruplets(
+                                    QuadType.Comment,
+                                    QuadArgument.createConstantArgument("Declaring property  " + ctx.id.getText() + " of class " + ctx.class_.getText()),
+                                    null,
+                                    null,
+                                    tabCounter
+                            )
+                        );
                         //Success case
                         quadsPropertyForClass.add(
                                 new Quadruplets(
@@ -289,6 +524,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         return visitChildren(ctx);
     }
 
+    //PARAMS DECLARATIONS
     @Override
     public VisitorTypeResponse visitDeclaration(YAPLParser.DeclarationContext ctx) {
         SymbolStack stack = SymbolStack.getInstance();
@@ -401,13 +637,31 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
 
     @Override
     public VisitorTypeResponse visitBoolExpression(YAPLParser.BoolExpressionContext ctx) {
+        String exp;
+        if (ctx.getText().equalsIgnoreCase("true")){
+            exp = "1";
+        }else{
+            exp = "0";
+        }
         return TypesTable.getInstance().getBoolType().toResponse().setArgument(
-                QuadArgument.createConstantArgument(ctx.getText())
+                QuadArgument.createConstantArgument(exp)
         );
     }
 
     @Override
     public VisitorTypeResponse visitWhileExpression(YAPLParser.WhileExpressionContext ctx) {
+//        String whileCheckName = "WHILE_CEHCK_" + whileCounter;
+        String whileName = "WHILE_" + whileCounter;
+        String endWhileName = "END_WHILE_" + whileCounter;
+//        TAC.addQuad(
+//                new Quadruplets(
+//                        QuadType.Label,
+//                        QuadArgument.createConstantArgument(whileCheckName),
+//                        null,
+//                        null,
+//                        tabCounter
+//                )
+//        );
         VisitorTypeResponse conditionTypeResponse = visit(ctx.condition);
         Type conditionType = conditionTypeResponse.getType();
         Token conditionToken = ctx.condition.start;
@@ -424,14 +678,32 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             }
         }
 
-        String whileName = "WHILE_" + whileCounter;
-        String endWhileName = "END_WHILE_" + whileCounter;
+
         whileCounter+=1;
+
+        QuadArgument leftArgument;
+        if (conditionTypeResponse.getArgument().isSymbol()){
+            leftArgument = conditionTypeResponse.getArgument();
+        }else{
+            Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(conditionTypeResponse.getId(), MemoryType.Stack);
+            leftArgument = QuadArgument.createSymbolArgument(temporal);
+            TAC.addQuad(
+                    new Quadruplets(
+                            QuadType.Assign,
+                            conditionTypeResponse.getArgument(),
+                            null,
+                            temporal,
+                            tabCounter
+                    )
+            );
+        }
+
+
         TAC.addQuad(
                 new Quadruplets(
                         QuadType.If,
-                        conditionTypeResponse.getArgument(),
-                        QuadArgument.createConstantArgument("goTo "  + whileName),
+                        leftArgument,
+                        QuadArgument.createConstantArgument(whileName),
                         null,
                         tabCounter
                 )
@@ -439,7 +711,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         TAC.addQuad(
                 new Quadruplets(
                         QuadType.Else,
-                        QuadArgument.createConstantArgument("goTo "  + endWhileName),
+                        QuadArgument.createConstantArgument(endWhileName),
                         null,
                         null,
                         tabCounter
@@ -461,12 +733,30 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         tabCounter += 1;
         //Visit block body
         visit(ctx.block);
+        //Replicate condition
+        VisitorTypeResponse conditionTypeResponse2 = visit(ctx.condition);
         tabCounter -= 1;
+
+        if (conditionTypeResponse2.getArgument().isSymbol()){
+            leftArgument = conditionTypeResponse2.getArgument();
+        }else{
+            Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(conditionTypeResponse2.getId(), MemoryType.Stack);
+            leftArgument = QuadArgument.createSymbolArgument(temporal);
+            TAC.addQuad(
+                    new Quadruplets(
+                            QuadType.Assign,
+                            conditionTypeResponse2.getArgument(),
+                            null,
+                            temporal,
+                            tabCounter
+                    )
+            );
+        }
         TAC.addQuad(
                 new Quadruplets(
                         QuadType.If,
-                        conditionTypeResponse.getArgument(),
-                        QuadArgument.createConstantArgument("goTo "  + whileName),
+                        leftArgument,
+                        QuadArgument.createConstantArgument(whileName),
                         null,
                         tabCounter
                 )
@@ -483,6 +773,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         );
 
 
+        //Always return an object
         Symbol objectTemporal = SymbolStack.getInstance().currentScope().storeTemporal(Constants.Object, MemoryType.Stack);
 
         return TypesTable.getInstance().getObjectType().toResponse().setArgument(
@@ -513,6 +804,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         int functionColumn = ctx.functionId.getCharPositionInLine();
         int functionLine = ctx.functionId.getLine();
         String functionIdentifier = ctx.functionId.getText();
+        boolean isSpecial = Arrays.stream(Constants.SpecialFunctions).toList().contains(functionIdentifier);
         VisitorTypeResponse invocatorTypeResponse = visit(ctx.invocator);
         Type invocatorType = invocatorTypeResponse.getType();
         if (invocatorType == null){
@@ -576,7 +868,8 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             //Check function exists
             //TODO Checks if this works correctly like this. Else check if only exists in specified scope
             //TODO: AKA get method in scope.
-            Method method = finalType.getMethod(functionIdentifier, paramNames);
+            Pair<Method, Type> methodAndT = finalType.getMethodAndParent(functionIdentifier, paramNames);
+            Method method = methodAndT.getFirst();
             if (method == null){
                 SymbolErrorsContainer.getInstance().addError(
             "La función " + functionIdentifier + " no ha sido declarada en la clase " +  finalType.getId() +".\n"+
@@ -586,10 +879,17 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 );
             }
             else{
-//                if (parametersPassed.so)
+                String prefixName = methodAndT.getSecond().getId() + "_" + functionIdentifier;
+                if (isSpecial){
+                    prefixName = functionIdentifier;
+                }
                 //Different count of params passed
                 String P = functionIdentifier;
+
                 int N = paramTypes.size();
+                //We pass the equivalent to the self
+                TAC.addQuad(new Quadruplets(QuadType.NotifyParamsFunction, QuadArgument.createMethodArgument(methodAndT.getFirst()), null, null, 0));
+                TAC.addComment("We are going to pass an instance as a param", tabCounter);
                 TAC.addQuad(
                         new Quadruplets(
                                 QuadType.Parameter,
@@ -607,6 +907,8 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                     );
                 }else{
                     //Correct amount of parameters was passed
+                    //Initial offset is always 8
+                    int offset = 4;
                     for (int index = 0; index < paramTypes.size(); index++){
                         YAPLParser.ExprContext parameterPassedCtx = parametersPassed.get(index);
                         Token parameterPassedTkn = parameterPassedCtx.start;
@@ -625,15 +927,40 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                                         parameterPassedTkn.getLine()
                                 );
                             }else{
+
+                                QuadArgument leftArgument;
+                                if (parameterTypePassed.getArgument().isSymbol()){
+                                    leftArgument = parameterTypePassed.getArgument();
+                                }else{
+                                    //Create a temporal
+                                    Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(parameterTypeExpected.getId(), MemoryType.Stack);
+                                    leftArgument = QuadArgument.createSymbolArgument(temporal);
+                                    //Add Assign instructiom
+                                    TAC.addQuad(
+                                            new Quadruplets(
+                                                    QuadType.Assign,
+                                                    parameterTypePassed.getArgument(),
+                                                    null,
+                                                    temporal,
+                                                    tabCounter
+                                            )
+                                    );
+                                }
+
+
                                 TAC.addQuad(
                                         new Quadruplets(
                                                 QuadType.Parameter,
-                                                parameterTypePassed.getArgument(),
-                                                null,
+                                                leftArgument,
+                                                //We set the param info
+//                                                QuadArgument.createSymbolArgument(method.paramSymbolInfo.get(index)),
+                                                QuadArgument.createConstantArgument(String.valueOf(offset)),
                                                 null,
                                                 tabCounter
                                         )
                                 );
+                                VisitorTypeResponse rParam = method.getParameterTypeAtPosition(index);
+                                offset += rParam.getType().getReferenceSize();
                             }
                         }
 
@@ -645,8 +972,47 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 TAC.addQuad(
                         new Quadruplets(
                                 QuadType.Call,
-                                QuadArgument.createConstantArgument(finalType.getId() + "_" + P),
+                                QuadArgument.createConstantArgument(prefixName + "_state_save"),
+                                null,
+                                null,
+                                tabCounter
+                        )
+                );
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Call,
+                                QuadArgument.createConstantArgument(prefixName + "_ar_create"),
+                                null,
+                                null,
+                                tabCounter
+                        )
+                );
+
+                TAC.addComment("#Calling " + ctx.getText(), tabCounter);
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Call,
+                                QuadArgument.createConstantArgument(prefixName),
                                 QuadArgument.createConstantArgument(String.valueOf(N + 1)),
+                                null,
+                                tabCounter
+                        )
+                );
+
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Call,
+                                QuadArgument.createConstantArgument(prefixName+"_ar_remove"),
+                                null,
+                                null,
+                                tabCounter
+                        )
+                );
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Call,
+                                QuadArgument.createConstantArgument(prefixName+"_state_restore"),
+                                null,
                                 resultTemporal,
                                 tabCounter
                         )
@@ -669,6 +1035,8 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         int functionColumn = ctx.functionId.getCharPositionInLine();
         int functionLine = ctx.functionId.getLine();
         String functionIdentifier = ctx.functionId.getText();
+        boolean isSpecial = Arrays.stream(Constants.SpecialFunctions).toList().contains(functionIdentifier);
+
         Type invocatorType = TypesTable.getInstance().getTypeByName(SymbolStack.getInstance().globalScope().getId());
         if (invocatorType == null){
             SymbolErrorsContainer.getInstance().addError(
@@ -686,7 +1054,8 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 paramTypes.add(p);
                 paramNames.add(p.getId());
             });
-            Method method = invocatorType.getMethod(functionIdentifier, paramNames);
+            Pair<Method, Type> methodAndT = invocatorType.getMethodAndParent(functionIdentifier, paramNames);
+            Method method = methodAndT.getFirst();
             if (method == null){
                 SymbolErrorsContainer.getInstance().addError(
                         "La función " + functionIdentifier + " no ha sido declarada en la clase " +  SymbolStack.getInstance().globalScope().getId() +".\n"+
@@ -696,6 +1065,10 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 );
             }
             else{
+                String prefixName = methodAndT.getSecond().getId() + "_" + method.getId();
+                if (isSpecial){
+                    prefixName = method.getId();
+                }
                 Token startParenthesisToken = ctx.PARENTHESIS_START().getSymbol();
 
                 //Different count of params passed
@@ -706,6 +1079,8 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                             startParenthesisToken.getLine()
                     );
                 }else{
+
+                    TAC.addQuad(new Quadruplets(QuadType.NotifyParamsFunction, QuadArgument.createMethodArgument(methodAndT.getFirst()), null, null, 0));
                     //Correct amount of parameters was passed
                     //Set base param
                     TAC.addQuad(
@@ -717,6 +1092,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                                     tabCounter
                             )
                     );
+                    int offset = 4;
                     for (int index = 0; index < parametersPassed.size(); index++){
                         YAPLParser.ExprContext parameterPassedCtx = parametersPassed.get(index);
                         Token parameterPassedTkn = parameterPassedCtx.start;
@@ -735,15 +1111,37 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                                         parameterPassedTkn.getLine()
                                 );
                             }else{
+                                QuadArgument leftArgument;
+                                if (parameterTypePassed.getArgument().isSymbol()){
+                                    leftArgument = parameterTypePassed.getArgument();
+                                }else{
+                                    Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(parameterTypeExpected.getId(), MemoryType.Stack);
+                                    leftArgument = QuadArgument.createSymbolArgument(temporal);
+                                    //Add Assign instructiom
+                                    TAC.addQuad(
+                                            new Quadruplets(
+                                                    QuadType.Assign,
+                                                    leftArgument,
+                                                    null,
+                                                    temporal,
+                                                    tabCounter
+                                            )
+                                    );
+                                }
+
                                 TAC.addQuad(
                                         new Quadruplets(
                                                 QuadType.Parameter,
-                                                parameterTypePassed.getArgument(),
-                                                null,
+                                                leftArgument,
+                                                //We set the param info
+//                                                QuadArgument.createSymbolArgument(method.paramSymbolInfo.get(index)),
+                                                QuadArgument.createConstantArgument(String.valueOf(offset)),
                                                 null,
                                                 tabCounter
                                         )
                                 );
+                                VisitorTypeResponse rParam = method.getParameterTypeAtPosition(index);
+                                offset += rParam.getType().getReferenceSize();
                             }
                         }
 
@@ -755,8 +1153,45 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                 TAC.addQuad(
                         new Quadruplets(
                                 QuadType.Call,
-                                QuadArgument.createConstantArgument(invocatorType.getId() + "_" + method.getId()),
+                                QuadArgument.createConstantArgument(prefixName +"_state_save"),
+                                null,
+                                null,
+                                tabCounter
+                        )
+                );
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Call,
+                                QuadArgument.createConstantArgument(prefixName +"_ar_create"),
+                                null,
+                                null,
+                                tabCounter
+                        )
+                );
+
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Call,
+                                QuadArgument.createConstantArgument(prefixName),
                                 QuadArgument.createConstantArgument(String.valueOf(method.getParamCount() + 1)),
+                                null,
+                                tabCounter
+                        )
+                );
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Call,
+                                QuadArgument.createConstantArgument(prefixName +"_ar_remove"),
+                                null,
+                                null,
+                                tabCounter
+                        )
+                );
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Call,
+                                QuadArgument.createConstantArgument(prefixName +"_state_restore"),
+                                null,
                                 resultTemporal,
                                 tabCounter
                         )
@@ -847,7 +1282,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
             return VisitorTypeResponse.getErrorResponse("Error al asignar");
         }else{
             YAPLParser.ExprContext expr = ctx.expr();
-
+            expr.symbolToAssign = result.getSymbolFound();
             VisitorTypeResponse expectedType = result.getSymbolFound().getAssociatedType(column, line);
             VisitorTypeResponse resultType = visit(expr);
             //Types are valid
@@ -863,15 +1298,18 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                     );
                 }
             }
-            TAC.addQuad(
-                    new Quadruplets(
-                            QuadType.Assign,
-                            resultType.getArgument(),
-                            null,
-                            result.getSymbolFound(),
-                            tabCounter
-                    )
-            );
+            if (!(expr instanceof YAPLParser.ClassInstantiationExpressionContext)){
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Assign,
+                                resultType.getArgument(),
+                                null,
+                                result.getSymbolFound(),
+                                tabCounter
+                        )
+                );
+            }
+
             return expectedType.setArgument(
                     QuadArgument.createSymbolArgument(result.getSymbolFound())
             );
@@ -894,12 +1332,30 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
                     exprToken.getLine()
             );
         }
+        QuadArgument leftArgument;
+        //it is a constant
+        if(!exprResponse.getArgument().isSymbol()){
+            Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(exprResponse.getId(), MemoryType.Stack);
+            leftArgument = QuadArgument.createSymbolArgument(temporal);
+            //Add Assign instructiom
+            TAC.addQuad(
+                    new Quadruplets(
+                            QuadType.Assign,
+                            exprResponse.getArgument(),
+                            null,
+                            temporal,
+                            tabCounter
+                    )
+            );
+        }else{
+            leftArgument = exprResponse.getArgument();
 
+        }
         Symbol smallNegation = SymbolStack.getInstance().currentScope().storeTemporal(Constants.Int, MemoryType.Stack);
         TAC.addQuad(
                 new Quadruplets(
                         QuadType.SmallNegation,
-                        exprResponse.getArgument(),
+                        leftArgument,
                         null,
                         smallNegation,
                         tabCounter
@@ -912,11 +1368,38 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
 
     @Override
     public VisitorTypeResponse visitStringExpression(YAPLParser.StringExpressionContext ctx) {
-        return TypesTable.getInstance().getStringType().toResponse().setArgument(
-                QuadArgument.createConstantArgument(
-                        ctx.getText()
+        //The stirng is in the heap but the temporal contains only the address
+        Symbol stringTemp = SymbolStack.getInstance().currentScope().storeTemporal(Constants.String, MemoryType.Stack);
+        //We assign the string
+        String name = "string"+String.valueOf(stringCounter);
+        stringCounter+=1;
+        int length = ctx.getText().replaceAll("\\\\", "").length() - 2;
+
+        TAC.addQuad(
+                new Quadruplets(
+                        QuadType.CopyString,
+                        QuadArgument.createConstantArgument(name),
+                        QuadArgument.createConstantArgument(String.valueOf(length)),
+                        stringTemp,
+                        tabCounter
                 )
         );
+        dataSectionQuads.add(
+                new Quadruplets(
+                        QuadType.Data,
+                        QuadArgument.createConstantArgument(name),
+                        QuadArgument.createConstantArgument(ctx.getText()),
+                        null,
+                        1
+                )
+        );
+        return TypesTable.getInstance().getStringType().toResponse().setArgument(
+                QuadArgument.createSymbolArgument(stringTemp)
+        );
+    }
+
+    private boolean isZero(YAPLParser.ExprContext ctx){
+        return ctx.getText().equals("0");
     }
 
     @Override
@@ -924,25 +1407,61 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         VisitorTypeResponse leftType = visit(ctx.left);
         VisitorTypeResponse rightType = visit(ctx.right);
         String operator = ctx.op.getText();
-
+        boolean isLeftZero = isZero(ctx.left);
+        boolean isRightZero = isZero(ctx.right);
         checkIsIntExpression(leftType, operator, ctx.left.start.getCharPositionInLine(), ctx.left.start.getLine());
         checkIsIntExpression(rightType, operator, ctx.right.start.getCharPositionInLine(), ctx.right.start.getLine());
         Type intType = TypesTable.getInstance().getIntType();
-        Symbol comparisonTemporal = SymbolStack.getInstance().currentScope().storeTemporal(intType.getId(), MemoryType.Stack);
-        TAC.addQuad(
-                new Quadruplets(
-                        QuadType.getOperator(operator),
-                        //We get the argument of the left
-                        leftType.getArgument(),
-                        //We get the argument of the right
-                        rightType.getArgument(),
-                        //We get the id
-                        comparisonTemporal,
-                        tabCounter
-                )
-        );
+
+        QuadType opQuad = QuadType.getOperator(operator);
+        Symbol operationTemporal = SymbolStack.getInstance().currentScope().storeTemporal(intType.getId(), MemoryType.Stack);
+        QuadArgument argumentResult;
+        if (isLeftZero || isRightZero) {
+            //If it is a multiplication or divisionwe know the result is 0
+            if (opQuad == QuadType.Division || opQuad == QuadType.Multiply) {
+                argumentResult = QuadArgument.createConstantArgument("0");
+            }
+            //Check if it is a sum or rest and it is zero left
+            else if (isLeftZero) {
+                argumentResult = rightType.getArgument();
+            }else{
+                argumentResult = leftType.getArgument();
+            }
+        }else{
+            QuadArgument leftArgument;
+            //it is a constant
+            if(!leftType.getArgument().isSymbol()){
+                Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(leftType.getId(), MemoryType.Stack);
+                leftArgument = QuadArgument.createSymbolArgument(temporal);
+                //Add Assign instructiom
+                TAC.addQuad(
+                        new Quadruplets(
+                                QuadType.Assign,
+                                leftType.getArgument(),
+                                null,
+                                temporal,
+                                tabCounter
+                        )
+                );
+            }else{
+                leftArgument = leftType.getArgument();
+            }
+            TAC.addQuad(
+                    new Quadruplets(
+                            opQuad,
+                            //We get the argument of the left
+                            leftArgument,
+                            //We get the argument of the right
+                            rightType.getArgument(),
+                            //We get the id
+                            operationTemporal,
+                            tabCounter
+                    )
+            );
+            argumentResult = QuadArgument.createSymbolArgument(operationTemporal);
+        }
         return intType.toResponse().setArgument(
-                QuadArgument.createSymbolArgument(comparisonTemporal)
+                argumentResult
         );
     }
 
@@ -990,20 +1509,29 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
 
     @Override
     public VisitorTypeResponse visitLetExpression(YAPLParser.LetExpressionContext ctx) {
+        //TODO MUST ADD STACK SPACE
         //A function declaration requires a new element in the stack.
         SymbolStack stack = SymbolStack.getInstance();
         //The name of the stack if with the postfix of a let.
+        TAC.addComment("Entrando a scope de let", tabCounter);
         stack.addLetScope("let");
+        //We add space for the state
+//        int currentStack = SymbolTable.stackOffset;
+//        Quadruplets stackMachineStateQuad = new Quadruplets(QuadType.AssignSpaceStack, null, null, null, 1);
+//        Quadruplets stackMachineStateQuadList = new Quadruplets(QuadType.RegistersToUse, null, null, null, 1);
+//        TAC.addQuad(stackMachineStateQuad);
+//        TAC.addQuad(stackMachineStateQuadList);
         for (YAPLParser.Declaration_with_possible_assignationContext d : ctx.declaration_with_possible_assignation()){
             visitDeclaration_with_possible_assignation(d);
         }
         VisitorTypeResponse response = visit(ctx.expr());
-        //Pop the scope
+
+//        int totalSize = SymbolTable.stackOffset-currentStack+4;
         stack.removeCurrentScope(false);
         if(response.isValid()){
-            Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(response.getId(), MemoryType.Stack);
+//            Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(response.getId(), MemoryType.Stack);
             return response.setArgument(
-                    QuadArgument.createSymbolArgument(temporal)
+                    response.getArgument()
             );
         }
 
@@ -1024,19 +1552,46 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         }
         String temporalName = SymbolStack.getInstance().currentScope().getTemporalName();
 
-        String ifCheckFlag = "IF_FLAG_" + String.valueOf(ifCounter);
+
         String trueFlag = "TRUE_" + String.valueOf(ifCounter);
         String falseFlag = "FALSE_" + String.valueOf(ifCounter);
         String endFlag = "ENDIF_" + String.valueOf(ifCounter);
         Symbol ifResult  = new Symbol(temporalName, null, MemoryType.Stack);
         this.ifCounter = ifCounter + 1;
+        QuadArgument leftArgument;
+        if (conditionType.getArgument().isSymbol()){
+            leftArgument = conditionType.getArgument();
+        }else{
+            Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(conditionType.getId(), MemoryType.Stack);
+            leftArgument = QuadArgument.createSymbolArgument(temporal);
+            //Add Assign instructiom
+            TAC.addQuad(
+                    new Quadruplets(
+                            QuadType.Assign,
+                            conditionType.getArgument(),
+                            null,
+                            temporal,
+                            tabCounter
+                    )
+            );
+        }
+
         TAC.addQuad(new Quadruplets(
-                QuadType.goTo,
-                QuadArgument.createConstantArgument(ifCheckFlag),
+                QuadType.If,
+                leftArgument,
+                QuadArgument.createConstantArgument(trueFlag),
+                null,
+                tabCounter
+        ));
+
+        TAC.addQuad(new Quadruplets(
+                QuadType.Else,
+                QuadArgument.createConstantArgument(falseFlag),
                 null,
                 null,
                 tabCounter
         ));
+
 
 
         //Set true flag
@@ -1098,56 +1653,7 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         //For now return void type
         VisitorTypeResponse mct = thenResponse.getMCT(elseResponse);
 
-
-
-
-
         if (mct.isValid()) {
-
-            //Check flag
-            TAC.addQuad(new Quadruplets(
-                    QuadType.Label,
-                    QuadArgument.createLabelRefArgument(ifCheckFlag),
-                    null,
-                    null,
-                    tabCounter
-            ));
-
-            tabCounter += 1;
-
-            TAC.addQuad(
-                    new Quadruplets(
-                            QuadType.AssignSpaceHeap,
-                            QuadArgument.createConstantArgument(
-                                    String.valueOf(
-                                            Integer.max(
-                                                    thenResponse.getType().getTotalSize(),
-                                                    elseResponse.getType().getTotalSize()
-                                            )
-                                    )
-                            ),
-                            null,
-                            null,
-                            tabCounter
-                    )
-            );
-
-            TAC.addQuad(new Quadruplets(
-                    QuadType.If,
-                    conditionType.getArgument(),
-                    QuadArgument.createConstantArgument("goTo " + trueFlag),
-                    null,
-                    tabCounter
-            ));
-
-            TAC.addQuad(new Quadruplets(
-                    QuadType.Else,
-                    QuadArgument.createConstantArgument("goTo " + falseFlag),
-                    null,
-                    null,
-                    tabCounter
-            ));
-            tabCounter -= 1;
 
             TAC.addQuad(new Quadruplets(
                     QuadType.Label,
@@ -1174,19 +1680,25 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
     public VisitorTypeResponse visitClassInstantiationExpression(YAPLParser.ClassInstantiationExpressionContext ctx) {
         VisitorTypeResponse response = visit(ctx.type_grammar());
         if (response.isValid()){
-            //TODO: Remove temporal
-            Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(response.getId(), MemoryType.Stack);
-            TAC.addQuad(
-                    new Quadruplets(
-                            QuadType.Assign,
-                            QuadArgument.createSymbolArgument(temporal),
-                            null,
-                            temporal,
-                            tabCounter
-                    )
+            //Where we will store the value
+            Symbol resultSymbol = ctx.symbolToAssign;
+            if (ctx.symbolToAssign == null){
+                //It is a class the value but we are only using the address
+                resultSymbol = SymbolStack.getInstance().currentScope().storeTemporal(response.getId(), MemoryType.Stack);
+            }
+
+            TAC.addComment(
+                    "Creating a new instance of the class " + response.getId(),
+                    tabCounter
             );
+
+            //We call the instantiation function
+            TAC.addQuad(
+                    response.getType().getInstantiationCallQuad(resultSymbol, tabCounter)
+            );
+
             return response.setArgument(
-                    QuadArgument.createSymbolArgument(temporal)
+                    QuadArgument.createSymbolArgument(resultSymbol)
             );
         }
 
@@ -1215,11 +1727,29 @@ public class YAPLSymbolsVisitor extends AbstractParseTreeVisitor<VisitorTypeResp
         Symbol comparisonTemporal = SymbolStack.getInstance().currentScope().storeTemporal(leftType.getId(), MemoryType.Stack);
         QuadType comp = QuadType.getCompOperator(op);
 
+        QuadArgument leftArgument;
+        //it is a constant as true or false
+        if(!leftType.getArgument().isSymbol()){
+            Symbol temporal = SymbolStack.getInstance().currentScope().storeTemporal(leftType.getId(), MemoryType.Stack);
+            leftArgument = QuadArgument.createSymbolArgument(temporal);
+            TAC.addQuad(
+                    new Quadruplets(
+                            QuadType.Assign,
+                            leftType.getArgument(),
+                            null,
+                            temporal,
+                            tabCounter
+                    )
+            );
+        }else{
+            leftArgument = leftType.getArgument();
+        }
+
         TAC.addQuad(
                 new Quadruplets(
                         comp,
                         //We get the argument of the left
-                        leftType.getArgument(),
+                        leftArgument,
                         //We get the argument of the right
                         rightType.getArgument(),
                         //We get the id

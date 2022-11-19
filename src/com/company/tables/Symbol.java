@@ -1,6 +1,7 @@
 package com.company.tables;
 
 import com.company.errors.SymbolErrorsContainer;
+import com.company.registers.Register;
 import com.company.utils.MemoryType;
 import com.company.visitor.VisitorTypeResponse;
 
@@ -26,6 +27,22 @@ public class Symbol {
         return id;
     }
     public int getOffset() { return offset; }
+    public String getOffsetAndMemory(){
+        return getOffset() + " offset " + getMemoryTypePlacement().getName();
+    }
+
+    public String getActionLoad(){
+        if (getMemoryTypePlacement() == MemoryType.Heap){
+            return "la";
+        }
+        return "lw";
+    }
+    public String getOffsetAndMemoryUsable(){
+        if (getMemoryTypePlacement() == MemoryType.Heap){
+            return getOffset() + "(" + Register.heapRegister.getId() + ")";
+        }
+        return getOffset() + "(" + Register.stackRegister.getId() + ")";
+    }
     public void setOffset(int offset) {
         this.offset = offset;
     }

@@ -125,13 +125,16 @@ class Main inherits IO {
 
    main() : Object {
       {
-	 mylist <- (new List).cons(1).cons(2).cons(3).cons(4).cons(5);
+	 mylist <- (new List).cons(1);
+	 --.cons(2).cons(3).cons(4).cons(5);
 	 while (not mylist.isNil()) loop
 	    {
 	       print_list(mylist);
 	       mylist <- mylist.tail();
 	    }
 	 pool;
+	 --268697612
+	 --268697616
       }
    };
 

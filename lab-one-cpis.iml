@@ -22,5 +22,6 @@
     <orderEntry type="library" exported="" name="org.openjfx:javafx-graphics:18.0.1" level="project" />
     <orderEntry type="library" exported="" name="org.fxmisc.richtext:richtextfx:0.10.9" level="project" />
     <orderEntry type="library" exported="" name="org.reactfx:reactfx:2.0-M5" level="project" />
+    <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
   </component>
 </module>

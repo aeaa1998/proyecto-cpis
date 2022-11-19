@@ -14,9 +14,13 @@ public class Method {
     //It has the type of the param in the ith position
     private final ArrayList<String> paramsStrings;
     private final ArrayList<String> paramsStringNames;
+    public ArrayList<Symbol> paramSymbolInfo;
     private final String returnTypeName;
     private final int column;
     private final int line;
+    public int stackSize = 0;
+    public int paramStackSize = 0;
+    public int totalSize = 0;
 
     public Method(String id, String returnType, ArrayList<String> params, int column, int line) {
         this.id = id;
@@ -26,6 +30,7 @@ public class Method {
         this.line = line;
         this.params = new ArrayList<VisitorTypeResponse>();
         paramsStringNames = new ArrayList<>();
+        paramSymbolInfo = new ArrayList<>();
     }
 
     public Method(String id, String returnType, int column, int line) {
@@ -36,6 +41,7 @@ public class Method {
         this.line = line;
         this.params = new ArrayList<VisitorTypeResponse>();
         paramsStringNames = new ArrayList<>();
+        paramSymbolInfo = new ArrayList<>();
     }
 
     public void addParamString(String name, String param, int column, int line){
@@ -82,15 +88,17 @@ public class Method {
         }
     }
 
-//    public void addParameterType(VisitorTypeResponse type){
-//        params.add(type);
-//    }
+    public void storeSymbolsOfParams(ArrayList<Symbol> symbols){
+        this.paramSymbolInfo = symbols;
+    }
 
     public VisitorTypeResponse getParameterTypeAtPosition(int index){
         //Index does not exist here
         if (index + 1 > params.size()){
             //Assign it
-            params.add(index, TypesTable.getInstance().getTypeByName(paramsStrings.get(index)).toResponse());
+            VisitorTypeResponse p = TypesTable.getInstance().getTypeByName(paramsStrings.get(index)).toResponse();
+            params.add(index, p);
+            paramStackSize += p.getType().getReferenceSize();
         }
         return params.get(index);
     }

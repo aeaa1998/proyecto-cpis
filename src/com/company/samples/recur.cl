@@ -16,8 +16,8 @@ class Fibonacci {
   	
   	fibonacci(n: Int) : Int {
         {( let f : Int in
-      	 if n=1 then f<-1 else
-         if n=2 then f<-1 else
+      	 if n=0 then f<-n else
+         if n=1 then f<-n else
         	 f<-fibonacci(n-1)+fibonacci(n-2)
          fi fi
        );}

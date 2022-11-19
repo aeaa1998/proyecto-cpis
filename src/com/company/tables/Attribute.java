@@ -8,7 +8,6 @@ import com.company.visitor.VisitorTypeResponse;
 
 public class Attribute {
     private final String id;
-    private Type type;
     private final String typeName;
     private final int column;
     private final int line;

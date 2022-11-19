@@ -1,3 +1,65 @@
+class Main inherits IO {
+
+   char : String;
+   avar : A;
+   a_var : A;
+   flag : Bool <- true;
+
+main() : Object {
+      {
+         avar <- new A;
+         avar.set_var(2);
+         out_int(avar.value());
+
+         if is_even(avar.value()) then
+	          out_string(" es par!\n")
+	     else
+	          out_string(" es impar!\n")
+	     fi;
+
+         a_var <- (new A).set_var(3);
+	     avar <- (new B).method2(avar.value(), a_var.value());
+	     --5
+         out_int(avar.value());
+         out_string("\n");
+        --Difference = 1
+         avar <- (new C).method6(avar.value());
+         -- 6 neg
+         out_int(avar.value());
+         out_string("\n");
+
+         a_var <- (new A).set_var(5);
+         avar <- (new D).method4(avar.value(), a_var.value());
+            --11 negativo
+         out_int(avar.value());
+         out_string("\n");
+         avar.set_var(5);
+         avar <- (new C)@A.method5(avar.value());
+          --120
+         out_int(avar.value());
+         out_string("\n");
+
+         avar.set_var(6);
+         avar <- (new C)@B.method5(avar.value());
+         --36
+         out_int(avar.value());
+         out_string("\n");
+
+      }
+   };
+
+   is_even(num : Int) : Bool {
+      (let x : Int <- num in
+            if x < 0 then is_even(~x) else
+            if 0 = x then true else
+	    if 1 = x then false else
+	          is_even(x - 2)
+	    fi fi fi
+      )
+   };
+
+};
+
 class A {
 
    var : Int <- 0;
@@ -68,6 +130,10 @@ class A {
 
 };
 
+
+
+
+
 class B inherits A {  -- B is a number squared
 
    method5(num : Int) : E { -- square
@@ -132,64 +198,4 @@ class E inherits D {
 };
 
 
-class Main inherits IO {
-   
-   char : String;
-   avar : A; 
-   a_var : A;
-   flag : Bool <- true;
-
-
-
-   is_even(num : Int) : Bool {
-      (let x : Int <- num in
-            if x < 0 then is_even(~x) else
-            if 0 = x then true else
-	    if 1 = x then false else
-	          is_even(x - 2)
-	    fi fi fi
-      )
-   };
-
-   main() : Object {
-      {
-         avar <- (new A);
-         avar.set_var(2);
-         out_int(avar.value());
-         
-         if is_even(avar.value()) then
-	          out_string(" es par!\n")
-	     else
-	          out_string(" es impar!\n")
-	     fi;
-	     
-         a_var <- (new A).set_var(3);
-	     avar <- (new B).method2(avar.value(), a_var.value());
-         out_int(avar.value());
-         out_string("\n");
-         
-         
-         avar <- (new C).method6(avar.value());
-         out_int(avar.value());
-         out_string("\n");
-        
-         a_var <- (new A).set_var(5);
-         avar <- (new D).method4(avar.value(), a_var.value());
-         out_int(avar.value());
-         out_string("\n");
-        
-         avar.set_var(5);
-         avar <- (new C)@A.method5(avar.value());
-         out_int(avar.value());
-         out_string("\n");
-      	 
-         avar.set_var(6);
-         avar <- (new C)@B.method5(avar.value());
-         out_int(avar.value());
-         out_string("\n");
-
-      }
-   };
-
-};
 

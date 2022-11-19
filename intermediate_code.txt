@@ -1,0 +1,471 @@
+List_isNil_state_save:
+	Assign in stack 12
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset heap
+return
+# Declaring new function isNil
+List_isNil:
+				# We are going to assign the response
+	return 1
+List_isNil_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset heap
+	Assign in stack -12
+return
+List_head_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset heap
+	Save 4 offset stack
+return
+# Declaring new function head
+List_head:
+			param 0 en heap
+	call Object_abort_state_save 0
+		call Object_abort_ar_create 0
+		call Object_abort 1
+		call Object_abort_ar_remove 0
+		call Object_abort_state_restore 0
+	setCall 4 offset stack
+		# We are going to assign the response
+	return 0
+List_head_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset heap
+	Restore 4 offset stack
+	Assign in stack -16
+return
+List_tail_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset heap
+	Save 4 offset stack
+return
+# Declaring new function tail
+List_tail:
+			param 0 en heap
+	call Object_abort_state_save 0
+		call Object_abort_ar_create 0
+		call Object_abort 1
+		call Object_abort_ar_remove 0
+		call Object_abort_state_restore 0
+	setCall 4 offset stack
+		# We are going to assign the response
+	return 0 en heap
+List_tail_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset heap
+	Restore 4 offset stack
+	Assign in stack -16
+return
+List_cons_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset stack
+	Save 8 offset stack
+	Save 12 offset stack
+	Save 16 offset stack
+	Save 4 offset heap
+return
+# Declaring new function cons
+List_cons:
+			# Creating a new instance of the class Cons
+	call instantiate_new_Cons 0
+	setCall 8 offset stack
+	# We are going to pass an instance as a param
+	param 8 offset stack
+	param 4 offset stack
+	12 offset stack = List
+	param 12 offset stack
+	call Cons_init_state_save 0
+		call Cons_init_ar_create 0
+		# #Calling (newCons).init(i,self)
+	call Cons_init 3
+		call Cons_init_ar_remove 0
+		call Cons_init_state_restore 0
+	setCall 16 offset stack
+		# We are going to assign the response
+	return 16 offset stack
+List_cons_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset stack
+	Restore 8 offset stack
+	Restore 12 offset stack
+	Restore 16 offset stack
+	Restore 4 offset heap
+	Assign in stack -16
+return
+# Defining new class List
+instantiate_new_List:
+	assign_space_heap 0
+	# Declaring name value
+		set return heap address
+List_isNil_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 8
+return
+List_isNil_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -8
+return
+List_head_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 12
+return
+List_head_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -12
+return
+List_tail_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 12
+return
+List_tail_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -12
+return
+List_cons_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 24
+return
+List_cons_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -24
+return
+Cons_isNil_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 0 offset heap
+	Save 4 offset heap
+return
+# Declaring new function isNil
+Cons_isNil:
+				# We are going to assign the response
+	return 0
+Cons_isNil_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Assign in stack -16
+return
+Cons_head_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 0 offset heap
+	Save 4 offset heap
+return
+# Declaring new function head
+Cons_head:
+				# We are going to assign the response
+	return 0 offset heap
+Cons_head_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Assign in stack -16
+return
+Cons_tail_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 0 offset heap
+	Save 4 offset heap
+return
+# Declaring new function tail
+Cons_tail:
+				# We are going to assign the response
+	return 4 offset heap
+Cons_tail_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Assign in stack -16
+return
+Cons_init_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset stack
+	Save 8 offset stack
+	Save 0 offset heap
+	Save 0 offset heap
+	Save 4 offset heap
+return
+# Declaring new function init
+Cons_init:
+			0 offset heap = i
+	4 offset heap = rest
+		# We are going to assign the response
+	return 0 en heap
+Cons_init_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset stack
+	Restore 8 offset stack
+	Restore 0 offset heap
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Assign in stack -16
+return
+# Defining new class Cons
+instantiate_new_Cons:
+	assign_space_heap 8
+	# Declaring name value
+		set return heap address
+Cons_isNil_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 8
+return
+Cons_isNil_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -8
+return
+Cons_head_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 8
+return
+Cons_head_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -8
+return
+Cons_tail_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 8
+return
+Cons_tail_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -8
+return
+Cons_init_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 16
+return
+Cons_init_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -16
+return
+Main_print_list_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset stack
+	Save 8 offset stack
+	Save 12 offset stack
+	Save 44 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 44 offset stack
+	Save 12 offset stack
+	Save 8 offset stack
+return
+# Declaring new function print_list
+Main_print_list:
+			# We are going to pass an instance as a param
+	param 4 offset stack
+	call List_isNil_state_save 0
+		call List_isNil_ar_create 0
+		# #Calling l.isNil()
+	call List_isNil 1
+		call List_isNil_ar_remove 0
+		call List_isNil_state_restore 0
+	setCall 8 offset stack
+	if tmp2 TRUE_0
+	else FALSE_0
+	TRUE_0:
+				param 0 en heap
+		param 12 offset stack
+		call out_string_state_save 0
+				call out_string_ar_create 0
+				call out_string 2
+				call out_string_ar_remove 0
+				call out_string_state_restore 0
+		setCall 8 offset stack
+		44 offset stack = tmp2
+		goTo ENDIF_0
+	FALSE_0:
+		# We are going to pass an instance as a param
+		param 4 offset stack
+		call List_head_state_save 0
+				call List_head_ar_create 0
+				# #Calling l.head()
+		call List_head 1
+				call List_head_ar_remove 0
+				call List_head_state_restore 0
+		setCall 20 offset stack
+		param 0 en heap
+		param 20 offset stack
+		call out_int_state_save 0
+				call out_int_ar_create 0
+				call out_int 2
+				call out_int_ar_remove 0
+				call out_int_state_restore 0
+		setCall 24 offset stack
+				param 0 en heap
+		param 28 offset stack
+		call out_string_state_save 0
+				call out_string_ar_create 0
+				call out_string 2
+				call out_string_ar_remove 0
+				call out_string_state_restore 0
+		setCall 20 offset stack
+		# We are going to pass an instance as a param
+		param 4 offset stack
+		call List_tail_state_save 0
+				call List_tail_ar_create 0
+				# #Calling l.tail()
+		call List_tail 1
+				call List_tail_ar_remove 0
+				call List_tail_state_restore 0
+		setCall 24 offset stack
+		param 0 en heap
+		param 24 offset stack
+		call Main_print_list_state_save 0
+				call Main_print_list_ar_create 0
+				call Main_print_list 2
+				call Main_print_list_ar_remove 0
+				call Main_print_list_state_restore 0
+		setCall 28 offset stack
+		44 offset stack = tmp2
+	ENDIF_0:
+		# We are going to assign the response
+	return 44 offset stack
+Main_print_list_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset stack
+	Restore 8 offset stack
+	Restore 12 offset stack
+	Restore 44 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 44 offset stack
+	Restore 12 offset stack
+	Restore 8 offset stack
+	Assign in stack -16
+return
+Main_main_state_save:
+	Assign in stack 16
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 24 offset stack
+	Save 28 offset stack
+	Save 28 offset stack
+	Save 8 offset stack
+	Save 24 offset stack
+return
+# Declaring new function main
+Main_main:
+			# Creating a new instance of the class List
+	call instantiate_new_List 0
+	setCall 4 offset stack
+	# We are going to pass an instance as a param
+	param 4 offset stack
+	8 offset stack = 1
+	param 8 offset stack
+	call List_cons_state_save 0
+		call List_cons_ar_create 0
+		# #Calling (newList).cons(1)
+	call List_cons 2
+		call List_cons_ar_remove 0
+		call List_cons_state_restore 0
+	setCall 12 offset stack
+	4 offset heap = tmp0
+	# We are going to pass an instance as a param
+	param 4 offset heap
+	call List_isNil_state_save 0
+		call List_isNil_ar_create 0
+		# #Calling mylist.isNil()
+	call List_isNil 1
+		call List_isNil_ar_remove 0
+		call List_isNil_state_restore 0
+	setCall 4 offset stack
+	not tmp1
+	if tmp2 WHILE_0
+	else END_WHILE_0
+	WHILE_0:
+		param 0 en heap
+		param 4 offset heap
+		call Main_print_list_state_save 0
+				call Main_print_list_ar_create 0
+				call Main_print_list 2
+				call Main_print_list_ar_remove 0
+				call Main_print_list_state_restore 0
+		setCall 24 offset stack
+		# We are going to pass an instance as a param
+		param 4 offset heap
+		call List_tail_state_save 0
+				call List_tail_ar_create 0
+				# #Calling mylist.tail()
+		call List_tail 1
+				call List_tail_ar_remove 0
+				call List_tail_state_restore 0
+		setCall 28 offset stack
+		4 offset heap = tmp1
+		# We are going to pass an instance as a param
+		param 4 offset heap
+		call List_isNil_state_save 0
+				call List_isNil_ar_create 0
+				# #Calling mylist.isNil()
+		call List_isNil 1
+				call List_isNil_ar_remove 0
+				call List_isNil_state_restore 0
+		setCall 8 offset stack
+		not tmp2
+	if tmp0 WHILE_0
+	END_WHILE_0:
+		# We are going to assign the response
+	return 4 offset stack
+Main_main_state_restore:
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 24 offset stack
+	Restore 28 offset stack
+	Restore 28 offset stack
+	Restore 8 offset stack
+	Restore 24 offset stack
+	Assign in stack -16
+return
+# Defining new class Main
+instantiate_new_Main:
+	assign_space_heap 8
+	# Declaring name value
+		set return heap address
+Main_print_list_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 52
+return
+Main_print_list_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -52
+return
+Main_main_ar_create:
+	# Adding space for the parameters + body
+	Assign in stack 48
+return
+Main_main_ar_remove:
+	# removing space for the parameters + body
+	Assign in stack -48
+return

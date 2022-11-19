@@ -4,10 +4,14 @@ import com.company.errors.AttributeRedeclaration;
 import com.company.errors.MethodRedeclaration;
 import com.company.errors.TableErrorsContainer;
 import com.company.errors.TypeNotDeclared;
+import com.company.intermedary.QuadArgument;
+import com.company.intermedary.QuadType;
+import com.company.intermedary.Quadruplets;
 import com.company.utils.Constants;
 import com.company.utils.CycleStatus;
 import com.company.utils.MemoryType;
 import com.company.visitor.VisitorTypeResponse;
+import kotlin.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
@@ -19,6 +23,7 @@ public class Type {
     //Have the attributes ordered for knowing the offsets
     private final ArrayList<String> attributesOrdered;
     private HashMap<String, Method> methods = new HashMap<>();
+    private ArrayList<String> methodsOrdered = new ArrayList<>();
     private Type parent;
     private CycleStatus status = CycleStatus.NONE;
     private final String parentName;
@@ -122,7 +127,7 @@ public class Type {
         return this.size + this.parentSize;
     }
 
-    int getReferenceSize(){
+    public int getReferenceSize(){
         if (!isPointer()){
             return getTotalSize();
         }
@@ -238,6 +243,9 @@ public class Type {
                     method.getLine()
             );
         }else{
+            if (!methodsOrdered.contains(method.getSignature())){
+                methodsOrdered.add(method.getSignature());
+            }
             methods.put(method.getSignature(), method);
         }
 
@@ -274,6 +282,26 @@ public class Type {
             return meth;
         } else if (parent != null){
             return parent.getMethod(sig);
+        }
+        return null;
+    }
+    private Pair<Method, Type> getMethodAndParent(String signature){
+        Method meth = methods.get(signature);
+        if (meth != null){
+            return new Pair<>(meth, this);
+        } else if (parent != null){
+            return parent.getMethodAndParent(signature);
+        }
+        return null;
+    }
+
+    public Pair<Method, Type> getMethodAndParent(String name, List<String> params){
+        String sig = getSignature(name, params);
+        Method meth = methods.get(sig);
+        if (meth != null){
+            return new Pair<>(meth, this);
+        } else if (parent != null){
+            return parent.getMethodAndParent(sig);
         }
         return null;
     }
@@ -335,6 +363,23 @@ public class Type {
 
     }
 
+    public String getInstantiationCallName(){
+        return "instantiate_new_" + this.id;
+    }
+
+    public Quadruplets getInstantiationCallQuad(Symbol result, int tab){
+        return new Quadruplets(
+                QuadType.Call,
+                QuadArgument.createConstantArgument(getInstantiationCallName()),
+                //We return 0 as the param counter
+                QuadArgument.createConstantArgument(String.valueOf(0)),
+                result,
+                tab
+        );
+    }
+
+
+
     public String getId(){
         return this.id;
     }
@@ -352,12 +397,11 @@ public class Type {
     public void fillTable(SymbolTable symbolTable){
         if (parent != null){
             parent.fillTable(symbolTable);
+            //If it is a complext structure
             if (SymbolTable.heapOffset != parent.getTotalSize()){
                 SymbolTable.heapOffset = parent.getTotalSize();
             }
         }
-
-
 
         for (String attributeName : attributesOrdered){
 
@@ -366,9 +410,36 @@ public class Type {
                 //All the attributes are going to be added in the heap
                 symbolTable.storeSymbol(attributeName, attr.getId(), MemoryType.Heap);
             }
-
-
         }
+
+    }
+
+    public void fillTableQuads(ArrayList<Quadruplets> vTableSectionQuads){
+        for (String functionIdC:
+                getAllMethods()) {
+            Pair<Method, Type> pair = getMethodAndParent(functionIdC);
+            if (pair != null) {
+                vTableSectionQuads.add(
+                        new Quadruplets(
+                                QuadType.VTable,
+                                QuadArgument.createConstantArgument(pair.getSecond().getId() + "_" + pair.getFirst().getId()),
+                                null,
+                                null,
+                                2
+                        )
+                );
+            }
+        }
+
+    }
+
+    private Set<String> getAllMethods(){
+        HashSet<String> meths = new HashSet<>();
+        if (parent != null){
+            meths.addAll(parent.getAllMethods());
+        }
+        meths.addAll(methodsOrdered);
+        return meths;
     }
 
     public static @NotNull
@@ -379,10 +450,13 @@ public class Type {
         type.getHasCycle();
         Method abortMethod = new Method("abort", Constants.Object, 0, 0);
         Method typeNameMethod = new Method("type_name", Constants.String, 0, 0);
+        typeNameMethod.stackSize = 4;
+        typeNameMethod.totalSize = 8;
 //        Method copy = new Method("type_name", "Object", 0, 0);
         type.setMethod(abortMethod);
         type.setMethod(typeNameMethod);
-
+        //All have a class
+        type.setAttribute(new Attribute(Constants.classNameValue, Constants.String, 1, 1));
         //Base size
         type.size = Constants.BaseSpace;
         type.parentSize = 0;
@@ -394,8 +468,13 @@ public class Type {
         type.getHasCycle();
         type.casteables.add(Constants.Bool);
         type.canBeInherited = false;
+        Method typeNameMethod = new Method("type_name", Constants.String, 0, 0);
+        typeNameMethod.stackSize = 4;
+        typeNameMethod.totalSize = 8;
+        type.setMethod(typeNameMethod);
         //4 bytes needed for the int type
         type.size = 4;
+
         return type;
     }
 
@@ -407,16 +486,27 @@ public class Type {
         type.casteables.add(Constants.Int);
         type.canBeInherited = false;
         // 1 byte needed for bool
-        type.size = 1;
+//        type.size = 1;
+        type.size = 4;
+        Method typeNameMethod = new Method("type_name", Constants.String, 0, 0);
+        typeNameMethod.stackSize = 4;
+        typeNameMethod.totalSize = 8;
+        type.setMethod(typeNameMethod);
         return type;
     }
 
     public static @NotNull Type getStringType() {
         Type type = new Type(Constants.String, Constants.Object);
         Method length = new Method("length", Constants.Int, 0, 0);
+        length.stackSize = 8;
+        length.totalSize = 16;
         Method concat = new Method("concat", Constants.String, 0, 0);
+        concat.stackSize = 16;
+        concat.totalSize = 24;
         concat.addParamString("s", Constants.String, 0, 0);
         Method substr = new Method("substr", Constants.String, 0, 0);
+        substr.stackSize = 16;
+        substr.totalSize = 24;
         substr.addParamString("i", Constants.Int, 0, 0);
         substr.addParamString("l", Constants.Int, 0, 0);
         type.setMethod(length);
@@ -426,6 +516,14 @@ public class Type {
         type.canBeInherited = false;
         //Space needed for the reference
         type.size = Constants.StringSpace;
+        Method typeNameMethod = new Method("type_name", Constants.String, 0, 0);
+        typeNameMethod.stackSize = 4;
+        typeNameMethod.totalSize = 8;
+        type.setMethod(typeNameMethod);
+        Method abortMethod = new Method("abort", Constants.Object, 0, 0);
+        abortMethod.stackSize = 4;
+        abortMethod.totalSize = 8;
+        type.setMethod(abortMethod);
         return type;
     }
 
@@ -433,19 +531,32 @@ public class Type {
         Type type = new Type(Constants.IO, Constants.Object);
         type.getHasCycle();
         Method outString = new Method("out_string", Constants.SELF_TYPE, 0, 0);
+        outString.stackSize = 4;
+        outString.totalSize = 12;
         outString.addParamString("x", Constants.String, 0, 0);
-        Method typeNameMethod = new Method("out_int", Constants.SELF_TYPE, 0, 0);
-        typeNameMethod.addParamString("x", Constants.Int, 0 , 0);
+        Method dd = new Method("out_int", Constants.SELF_TYPE, 0, 0);
+        dd.addParamString("x", Constants.Int, 0 , 0);
+        dd.stackSize = 8;
+        dd.totalSize = 12;
         Method in_string = new Method("in_string", Constants.String, 0, 0);
+        //Add params for in_string
+
         Method in_int = new Method("in_int", Constants.Int, 0, 0);
+        //Add params for in_int
+
+
         type.setMethod(outString);
-        type.setMethod(typeNameMethod);
+        type.setMethod(dd);
         type.setMethod(in_string);
         type.setMethod(in_int);
         type.canBeInherited = true;
         //It is needed a reference
         type.size = Constants.ReferenceSpace;
 //        type.size = 0;
+//        Method typeNameMethod = new Method("type_name", Constants.String, 0, 0);
+//        typeNameMethod.stackSize = 4;
+//        typeNameMethod.totalSize = 8;
+//        type.setMethod(typeNameMethod);
         return type;
     }
 }
