@@ -21,6 +21,8 @@ public class Method {
     public int stackSize = 0;
     public int paramStackSize = 0;
     public int totalSize = 0;
+    public boolean isMain = false;
+    public int order = 0;
 
     public Method(String id, String returnType, ArrayList<String> params, int column, int line) {
         this.id = id;

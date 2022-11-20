@@ -3,16 +3,32 @@ package com.company.registers;
 
 import com.company.tables.Symbol;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class RegisterDescriptor {
     public HashMap<Register, ArrayList<Symbol>> descriptors = Register.getRegistersMapped();
-
+    public Stack<HashMap<Register, ArrayList<Symbol>>> descriptorsSnapshots = new Stack<>();
     public ArrayList<Symbol> getSymbolsInRegister(Register register){
         return descriptors.get(register);
+    }
+
+    public HashMap<Register, ArrayList<Symbol>> takeSnapShot(){
+        HashMap<Register, ArrayList<Symbol>> hashmap = new HashMap<>();
+        for (Register entry:
+                descriptors.keySet()) {
+            ArrayList<Symbol> arrayListCopy = new ArrayList<Symbol>(descriptors.get(entry));
+            hashmap.put(entry, arrayListCopy);
+        }
+
+        descriptorsSnapshots.push(hashmap);
+        return hashmap;
+    }
+
+    public HashMap<Register, ArrayList<Symbol>> removeSnapShot(){
+        HashMap<Register, ArrayList<Symbol>> a = descriptorsSnapshots.pop();
+        descriptors = a;
+//        descriptors = descriptorsSnapshots.pop();
+        return a;
     }
 
     public void setSymbolInRegister(Register register, Symbol symbol){

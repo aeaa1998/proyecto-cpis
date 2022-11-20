@@ -31,13 +31,13 @@ public class Main {
 	    // Write your code here
         StringBuilder content = new StringBuilder();
         try {
-//            File file = new File("./src/com/company/samples/easy.txt");
+            File file = new File("./src/com/company/samples/ackerman.txt");
 //            File file = new File("./src/com/company/samples/error_easy.txt");
 //            File file = new File("./src/com/company/samples/cool.cl");
 //            File file = new File("./src/com/company/samples/arith.cl");
 //            File file = new File("./src/com/company/samples/primes.cl");
 //            File file = new File("./src/com/company/samples/recur.cl");
-            File file = new File("./src/com/company/samples/list.cl");
+//            File file = new File("./src/com/company/samples/list.cl");
             Scanner scanner = new Scanner(file);
             while(scanner.hasNextLine()){
                 content.append(scanner.nextLine()).append("\n");

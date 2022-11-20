@@ -54,6 +54,7 @@ public class TypesTable {
             );
         }else {
             Method method = type.getMethod("main", new ArrayList<>());
+
             if (method == null){
                 TableErrorsContainer.getInstance().addError(
                         "Dentro de la clase Main la función main es obligatoria.\n" +
@@ -61,6 +62,8 @@ public class TypesTable {
                         type.getColumn(),
                         type.getLine()
                 );
+            }else {
+                method.isMain = true;
             }
         }
 

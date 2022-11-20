@@ -2,11 +2,30 @@ package com.company.registers
 
 import com.company.tables.Symbol
 import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class AddressDescriptor {
-    val descriptor: HashMap<Symbol, ArrayList<Register>>  = HashMap();
+    var descriptor: HashMap<Symbol, ArrayList<Register>>  = HashMap();
 
+    val descriptorsSnapshots: Stack<HashMap<Symbol, ArrayList<Register>>> = Stack()
 
+    fun takeSnapShot(){
+        val hashmap = HashMap<Symbol, ArrayList<Register>>()
+        descriptor.forEach { t, u ->
+            val arrayListCopy = ArrayList<Register>()
+            arrayListCopy.addAll(u)
+            hashmap[t] = u
+        }
+        descriptorsSnapshots.push(hashmap)
+    }
+
+    fun removeSnapShot(): HashMap<Symbol, ArrayList<Register>> {
+//        descriptor = descriptorsSnapshots.pop()
+        val a  = descriptorsSnapshots.pop();
+        descriptor = a
+        return descriptor;
+    }
 
     fun getRegistersForSymbol(sym: Symbol): ArrayList<Register> {
         if (!descriptor.containsKey(sym)){

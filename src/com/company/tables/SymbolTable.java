@@ -9,7 +9,7 @@ public class SymbolTable {
     public static int stackOffset = 0;
     public static int maxStackOffset = 0;
     //This is the initial offset always
-    public static int heapOffset = 4;
+    public static int heapOffset = 0;
     private String id;
     //delimiter
     int offset = 0;
@@ -18,6 +18,7 @@ public class SymbolTable {
     boolean isClass;
 
     private final HashMap<String, Symbol> symbols = new HashMap<>();
+    public static final HashMap<String, Symbol> temporals = new HashMap<>();
 
     public ArrayList<String> getSymbolOrder() {
         return symbolOrder;
@@ -42,10 +43,14 @@ public class SymbolTable {
     }
 
     public Symbol storeTemporal(String temporalName, String typeName, MemoryType memory){
-        storeSymbol(temporalName, typeName, memory);
+        if (temporals.containsKey(temporalName)){
+            return temporals.get(getTemporalName());
+        }
 
+        storeSymbol(temporalName, typeName, memory);
+//        temporals.put(getTemporalName(), SymbolStack.getInstance().getSymbolInAnyScope(temporalName,1,1).getSymbolFound());
         temporalCounter += 1;
-        temporalCounter = temporalCounter % 3;
+//        temporalCounter = temporalCounter % 3;
         return this.getSymbolByName(temporalName);
     }
 
@@ -115,7 +120,8 @@ public class SymbolTable {
             }
         }
         stackOffset  = 0;
-        heapOffset = 4;
+        heapOffset = 0;
+        temporals.clear();
     }
 
     public String getId() {

@@ -52,6 +52,15 @@ public class QuadArgument {
         return q;
     }
 
+    public static QuadArgument createMethodAndSymbol(Method method, Symbol sym){
+        QuadArgument q = new QuadArgument(
+                null, QuadArgumentType.Constant, null
+        );
+        q.symbol = sym;
+        q.method = method;
+        return q;
+    }
+
     public static QuadArgument createLabelRefArgument(String primitive){
         return new QuadArgument(
                 primitive, QuadArgumentType.LabelRef, null

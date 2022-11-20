@@ -7,6 +7,7 @@ import com.company.registers.Register.*
 import com.company.registers.RegisterDescriptor
 import com.company.tables.Method
 import com.company.tables.Symbol
+import com.company.tables.TypesTable
 import com.company.utils.Constants
 import com.company.utils.MemoryType
 import java.util.*
@@ -19,6 +20,7 @@ class CodeGenerator(
     val addressDescriptor: AddressDescriptor,
     val registerDescriptor: RegisterDescriptor
 ) {
+    var mainSize: Int = 0
     lateinit var currentMethod: Method
     private var indexToInsert = 0
     private val dataCodeGenerated: ArrayList<CodeBlock> = ArrayList<CodeBlock>().apply {
@@ -29,25 +31,48 @@ class CodeGenerator(
         add(CodeBlock("\tintName: .asciiz \"Int\"", 0))
         add(CodeBlock("\tboolName: .asciiz \"Bool\"", 0))
         add(CodeBlock("\tabortMessage: .asciiz \"Interrupción por algún error\"", 0))
+        add(CodeBlock("Object_vtable:", 1))
+        add(CodeBlock(".word Object_abort", 2))
+        add(CodeBlock(".word Object_type_name", 2))
+
 
     }
+
+
     private val textCodeGenerated: ArrayList<CodeBlock> = ArrayList<CodeBlock>().apply {
-        add(CodeBlock(".text", 0))
-        add(CodeBlock("main:", 0))
-        add(CodeBlock("jal instantiate_new_Main", 0))
-        add(CodeBlock("move \$t9, \$v0", 0))
-        add(CodeBlock("jal Main_main_state_save", 0))
-        add(CodeBlock("jal Main_main_ar_create", 0))
-        add(CodeBlock("sw \$t9, 0(\$sp)", 0))
-        add(CodeBlock("jal Main_main", 0))
-        add(CodeBlock("jal Main_main_ar_remove", 0))
-        add(CodeBlock("jal Main_main_state_restore", 0))
-        add(CodeBlock("li \$v0, 10", 0))
-        add(CodeBlock("syscall", 0))
+//        add(CodeBlock(".text", 0))
+//        add(CodeBlock("main:", 0))
+//        add(CodeBlock("jal instantiate_new_Main", 0))
+//        add(CodeBlock("move \$t9, \$v0", 0))
+////        add(CodeBlock("jal Main_main_state_save", 0))
+////        add(CodeBlock("jal Main_main_ar_create", 0))
+//        add(CodeBlock("sw \$t9, 0(\$sp)", 0))
+//        add(CodeBlock("jal Main_main", 0))
+////        add(CodeBlock("jal Main_main_ar_remove", 0))
+////        add(CodeBlock("jal Main_main_state_restore", 0))
+//        add(CodeBlock("li \$v0, 10", 0))
+//        add(CodeBlock("syscall", 0))
     }
 
     public fun getCode(): List<CodeBlock> {
-        return dataCodeGenerated+textCodeGenerated;
+        mainSize = with(TypesTable.getInstance().getTypeByName("Main").getMethod("main", ArrayList())){
+            totalSize + stackSize
+        }
+        val initialBlock: ArrayList<CodeBlock> = ArrayList<CodeBlock>().apply {
+            add(CodeBlock(".text", 0))
+            add(CodeBlock("main:", 0))
+            add(CodeBlock("jal instantiate_new_Main", 0))
+            add(CodeBlock("move \$t9, \$v0", 0))
+//        add(CodeBlock("jal Main_main_state_save", 0))
+//        add(CodeBlock("jal Main_main_ar_create", 0))
+            add(CodeBlock("sw \$t9, ${-mainSize}(\$sp)", 0))
+            add(CodeBlock("jal Main_main", 0))
+//        add(CodeBlock("jal Main_main_ar_remove", 0))
+//        add(CodeBlock("jal Main_main_state_restore", 0))
+            add(CodeBlock("li \$v0, 10", 0))
+            add(CodeBlock("syscall", 0))
+        }
+        return dataCodeGenerated+initialBlock+textCodeGenerated;
     }
 
     private fun assignRegisterToSymbol(symbol: Symbol, register: Register){
@@ -189,9 +214,9 @@ class CodeGenerator(
             }
             else -> {
                 //Operate a not
-                textCodeGenerated.add(CodeBlock("addi ${thirdRegisterOrConstant.id}, ${thirdRegisterOrConstant.id}, 1", quadruplets.tab))
+                textCodeGenerated.add(CodeBlock("addi ${firstRegisterOrConstant}, ${firstRegisterOrConstant}, 1", quadruplets.tab))
                 //Mod by two
-                textCodeGenerated.add(CodeBlock("div ${thirdRegisterOrConstant.id}, ${thirdRegisterOrConstant.id}, 2", quadruplets.tab))
+                textCodeGenerated.add(CodeBlock("div ${firstRegisterOrConstant}, ${firstRegisterOrConstant}, 2", quadruplets.tab))
                 //Load the mod
                 textCodeGenerated.add(CodeBlock("mfhi ${thirdRegisterOrConstant.id}", quadruplets.tab))
             }
@@ -199,9 +224,11 @@ class CodeGenerator(
     }
 
     private fun generateSpaceHeap(quadruplets: Quadruplets){
-        textCodeGenerated.add(CodeBlock("li \$v0, 9", quadruplets.tab))
-        textCodeGenerated.add(CodeBlock("li \$a0, ${quadruplets.arg1.expression}", quadruplets.tab))
-        textCodeGenerated.add(CodeBlock("syscall", quadruplets.tab))
+//        if (quadruplets.arg1.expression.toInt() != 0) {
+            textCodeGenerated.add(CodeBlock("li \$v0, 9", quadruplets.tab))
+            textCodeGenerated.add(CodeBlock("li \$a0, ${quadruplets.arg1.expression}", quadruplets.tab))
+            textCodeGenerated.add(CodeBlock("syscall", quadruplets.tab))
+//        }
         //We move the heap address to the register
         textCodeGenerated.add(CodeBlock("move ${Register.heapRegister.id}, \$v0", quadruplets.tab))
     }
@@ -214,6 +241,7 @@ class CodeGenerator(
         // Argument two is the offset of AR
         val stackSize = currentMethod.stackSize
         val totalSize = currentMethod.totalSize
+
         val initialTotalOffset = -(totalSize + stackSize)
         if (quadruplets.arg2 != null){
             val paramRegister = getRegisterForSymbolOrConstant(quadruplets.arg1, quadruplets.tab, emptyList())
@@ -245,67 +273,75 @@ class CodeGenerator(
         //We save them
         textCodeGenerated.add(indexToInsert, CodeBlock("# We are going to store the current state", quadruplets.tab))
         var _index = 0
-        symbolsToRestore.forEachIndexed { _, symbol ->
-            val index = _index + 1
-            if(symbol.id == registerReturnAddress.id){
-                textCodeGenerated.add(indexToInsert + index, CodeBlock("sw ${registerReturnAddress.id}, ${_index*4}(${Register.stackRegister.id})", quadruplets.tab))
-                _index++
-            } else if(symbol.id == heapRegister.id){
-                textCodeGenerated.add(indexToInsert + index, CodeBlock("sw ${heapRegister.id}, ${_index*4}(${Register.stackRegister.id})", quadruplets.tab))
-                _index++
-            }else{
-
-                addressDescriptor.getRegistersForSymbol(symbol).firstOrNull()?.let { register ->
-
-
-                    //Now we create the restore
-                    if (!registersSaved.contains(register)) {
-                        textCodeGenerated.add(
-                            indexToInsert + index,
-                            CodeBlock("sw ${register.id}, ${_index * 4}(${Register.stackRegister.id})", quadruplets.tab)
-                        )
-                        _index++
-                    }
-                    registersSaved.add(register)
-                }
-                if (registersSaved.count() == temporariesRegisters.size){
-                    return@forEachIndexed
-                }
-            }
-        }
+//        symbolsToRestore.forEachIndexed { _, symbol ->
+//            val index = _index + 1
+//            if(symbol.id == registerReturnAddress.id){
+//                textCodeGenerated.add(indexToInsert + index, CodeBlock("sw ${registerReturnAddress.id}, ${_index*4}(${Register.stackRegister.id})", quadruplets.tab))
+//                _index++
+//            } else if(symbol.id == heapRegister.id){
+//                textCodeGenerated.add(indexToInsert + index, CodeBlock("sw ${heapRegister.id}, ${_index*4}(${Register.stackRegister.id})", quadruplets.tab))
+//                _index++
+//            }else{
+//
+//                addressDescriptor.getRegistersForSymbol(symbol).firstOrNull()?.let { register ->
+//
+//
+//                    //Now we create the restore
+//                    if (!registersSaved.contains(register)) {
+//                        textCodeGenerated.add(
+//                            indexToInsert + index,
+//                            CodeBlock("sw ${register.id}, ${_index * 4}(${Register.stackRegister.id})", quadruplets.tab)
+//                        )
+//                        _index++
+//                    }
+//                    registersSaved.add(register)
+//                }
+//                if (registersSaved.count() == temporariesRegisters.size){
+//                    return@forEachIndexed
+//                }
+//            }
+//        }
 //        textCodeGenerated.add(indexToInsert +_index + 1, CodeBlock("sw ${registerReturnAddress.id}, ${_index * 4}(${Register.stackRegister.id})",  quadruplets.tab))
+        textCodeGenerated.add(indexToInsert + 1, CodeBlock("sw \$t9, 0(\$sp)",quadruplets.tab))
+        textCodeGenerated.add(indexToInsert + 2, CodeBlock("sw \$t0, 4(\$sp)",quadruplets.tab))
+        textCodeGenerated.add(indexToInsert + 3, CodeBlock("sw \$t1, 8(\$sp)",quadruplets.tab))
+        textCodeGenerated.add(indexToInsert + 4, CodeBlock("sw \$t2, 12(\$sp)",quadruplets.tab))
 
         registersSaved.clear()
         //We restore them
         textCodeGenerated.add(CodeBlock("# We are going to restore the current state", quadruplets.tab))
         _index = 0
-        symbolsToRestore.forEachIndexed { _, symbol ->
-
-            if(symbol.id == registerReturnAddress.id){
-                textCodeGenerated.add(CodeBlock("lw ${registerReturnAddress.id}, ${_index*4}(${Register.stackRegister.id})", quadruplets.tab))
-                _index++
-            } else if(symbol.id == heapRegister.id){
-                textCodeGenerated.add(CodeBlock("lw ${heapRegister.id}, ${_index*4}(${Register.stackRegister.id})", quadruplets.tab))
-                _index++
-            }else {
-                addressDescriptor.getRegistersForSymbol(symbol).firstOrNull()?.let { register ->
-                    //We load it from the stack
-                    if (!registersSaved.contains(register)) {
-                        textCodeGenerated.add(
-                            CodeBlock(
-                                "lw ${register.id}, ${_index * 4}(${Register.stackRegister.id})",
-                                quadruplets.tab
-                            )
-                        )
-                        _index++
-                    }
-                    registersSaved.add(register)
-                }
-                if (registersSaved.count() == temporariesRegisters.size){
-                    return@forEachIndexed
-                }
-            }
-        }
+//        symbolsToRestore.forEachIndexed { _, symbol ->
+//
+//            if(symbol.id == registerReturnAddress.id){
+//                textCodeGenerated.add(CodeBlock("lw ${registerReturnAddress.id}, ${_index*4}(${Register.stackRegister.id})", quadruplets.tab))
+//                _index++
+//            } else if(symbol.id == heapRegister.id){
+//                textCodeGenerated.add(CodeBlock("lw ${heapRegister.id}, ${_index*4}(${Register.stackRegister.id})", quadruplets.tab))
+//                _index++
+//            }else {
+//                addressDescriptor.getRegistersForSymbol(symbol).firstOrNull()?.let { register ->
+//                    //We load it from the stack
+//                    if (!registersSaved.contains(register)) {
+//                        textCodeGenerated.add(
+//                            CodeBlock(
+//                                "lw ${register.id}, ${_index * 4}(${Register.stackRegister.id})",
+//                                quadruplets.tab
+//                            )
+//                        )
+//                        _index++
+//                    }
+//                    registersSaved.add(register)
+//                }
+//                if (registersSaved.count() == temporariesRegisters.size){
+//                    return@forEachIndexed
+//                }
+//            }
+//        }
+        textCodeGenerated.add(CodeBlock("lw \$t9, 0(\$sp)",quadruplets.tab))
+        textCodeGenerated.add(CodeBlock("lw \$t0, 4(\$sp)",quadruplets.tab))
+        textCodeGenerated.add(CodeBlock("lw \$t1, 8(\$sp)",quadruplets.tab))
+        textCodeGenerated.add(CodeBlock("lw \$t2, 12(\$sp)",quadruplets.tab))
 //        textCodeGenerated.add(CodeBlock("sw ${registerReturnAddress.id}, ${_index * 4}(${Register.stackRegister.id})",  quadruplets.tab))
     }
 
@@ -322,6 +358,14 @@ class CodeGenerator(
                 textCodeGenerated.add(CodeBlock("la \$a1, $nameOfDataString", quadruplets.tab))
                 textCodeGenerated.add(CodeBlock("jal copyString", quadruplets.tab))
                 textCodeGenerated.add(CodeBlock("move ${register.id}, \$v0", quadruplets.tab))
+            }
+
+            QuadType.AssignVTable -> {
+                val name = "${quadruplets.arg1.expression}_vtable"
+                val symbol = quadruplets.result
+
+                textCodeGenerated.add(CodeBlock("la \$v0, $name", quadruplets.tab))
+                textCodeGenerated.add(CodeBlock("sw \$v0, ${symbol.offsetAndMemoryUsable}", quadruplets.tab))
             }
 
             QuadType.CopyStringName -> {
@@ -368,7 +412,9 @@ class CodeGenerator(
                 generateSpaceHeap(quadruplets)
             }
             QuadType.AssignSpaceStack -> generateSpaceStack(quadruplets)
-            QuadType.goTo -> textCodeGenerated.add(CodeBlock("j ${quadruplets.arg1.expression}", quadruplets.tab))
+            QuadType.goTo -> {
+                textCodeGenerated.add(CodeBlock("j ${quadruplets.arg1.expression}", quadruplets.tab))
+            }
             QuadType.Parameter -> storeParamsInStack(quadruplets)
             QuadType.RegistersToUse ->{
                 //Secuence start
@@ -380,14 +426,6 @@ class CodeGenerator(
             QuadType.RegistersToRestore ->{
                 //Secuence start
                 generateSecuenceRestore(quadruplets, indexToInsert)
-                registerDescriptor.descriptors.forEach { t, u ->
-                    u.clear()
-                    if (!registerDescriptor.availableRegisters.contains(t)) registerDescriptor.availableRegisters.add(t)
-                }
-                addressDescriptor.descriptor.forEach {
-
-                    it.value.clear()
-                }
             }
             QuadType.If -> {
                 generateIfCode(quadruplets)
@@ -442,14 +480,44 @@ class CodeGenerator(
                             textCodeGenerated.add(CodeBlock("li \$v0, $a1", quadruplets.tab))
                         }
                     }
-                    textCodeGenerated.add(CodeBlock("jr ${registerReturnAddress.id}", 1))
+
                 }
 
             }
+            QuadType.Exit -> {
+                textCodeGenerated.add(CodeBlock("jr ${registerReturnAddress.id}", 1))
+                registerDescriptor.descriptors.forEach { t, u ->
+                    u.clear()
+                    if (!registerDescriptor.availableRegisters.contains(t)) registerDescriptor.availableRegisters.add(t)
+                }
+                addressDescriptor.descriptor.forEach {
+
+                    it.value.clear()
+                }
+            }
+            //Only in v table functions
             QuadType.Call -> {
                 val functionName = quadruplets.arg1.expression
-                //We call the function
-                textCodeGenerated.add(CodeBlock("jal $functionName", quadruplets.tab))
+                val method = quadruplets.arg2.method
+                val symbol = quadruplets.arg2.symbol
+
+                //Dynamic
+                if (method != null){
+                    if (symbol != null){
+                        val paramRegister = getRegisterForSymbol(symbol, quadruplets.tab, emptyList())
+                        textCodeGenerated.add(CodeBlock("lw \$s0, 4(${paramRegister.id})", quadruplets.tab))
+                    }else{
+                        //It is implicit self
+                        textCodeGenerated.add(CodeBlock("lw \$s0, 4(${heapRegister.id})", quadruplets.tab))
+                    }
+                    //We call the function
+                    //Load the v table
+                    textCodeGenerated.add(CodeBlock("lw \$s0, ${method.order * 4}(\$s0)", quadruplets.tab))
+                    textCodeGenerated.add(CodeBlock("jalr \$s0", quadruplets.tab))
+                }
+                else {
+                    textCodeGenerated.add(CodeBlock("jal $functionName", quadruplets.tab))
+                }
                 //If there is a result we return it
                 val result = quadruplets.result
                 result?.let {
@@ -474,7 +542,9 @@ class CodeGenerator(
                 val symbolToMoveInNewRegister = quadruplets.result
                 //It is a movement
                 if (registerForValueToCopy?.startsWith("$") == true) {
+                    val loaderIfNeeded = getRegisterForSymbol(symbolToMoveInNewRegister, quadruplets.tab, listOf(registerForValueToCopy))
                     textCodeGenerated.add(CodeBlock("sw $registerForValueToCopy, ${symbolToMoveInNewRegister.offsetAndMemoryUsable}", quadruplets.tab))
+
                     val allRegisterThatAreTheSame = addressDescriptor.getRegistersForSymbol(symbolToMoveInNewRegister)
                         .filter { it.id != registerForValueToCopy }
                     val allSymbolsToMove = allRegisterThatAreTheSame.fold(mutableSetOf<Symbol>()) { carry, register ->
@@ -486,15 +556,7 @@ class CodeGenerator(
                         textCodeGenerated.add(CodeBlock("move ${it.id}, ${registerForValueToCopy}", quadruplets.tab))
                     }
 
-//                    allRegisterThatAreTheSame.forEach { registerToClean ->
-//                        //Clean the register
-//                        registerDescriptor.descriptors[registerToClean]?.clear()
-//                    }
 //
-//                    allSymbolsToMove.forEach { symbolThatWillBeDuplicated ->
-//                        //We need to clear the address descriptor
-//                        addressDescriptor.descriptor[symbolThatWillBeDuplicated]?.clear()
-//                    }
                     registerDescriptor.descriptors.keys.firstOrNull { reg -> reg.id == registerForValueToCopy }
                         ?.let { register ->
                             //Add it
@@ -515,6 +577,9 @@ class CodeGenerator(
                 else {
                     val register = getRegisterForSymbol(symbolToMoveInNewRegister, quadruplets.tab)
                     textCodeGenerated.add(CodeBlock("li ${register.id}, $registerForValueToCopy", quadruplets.tab))
+                    //Save it just in case
+                    textCodeGenerated.add(CodeBlock("sw ${register.id}, ${symbolToMoveInNewRegister.offsetAndMemoryUsable}", quadruplets.tab))
+
                 }
             }
             QuadType.LoadNewHeap -> {
@@ -526,6 +591,81 @@ class CodeGenerator(
             }
             QuadType.LoadAr -> {
                 textCodeGenerated.add(CodeBlock("lw ${registerReturnAddress.id}, ${quadruplets.arg1.expression}(${stackRegister.id})", quadruplets.tab))
+            }
+            QuadType.TakeSnapshot -> {
+                addressDescriptor.takeSnapShot()
+                val registersToRestore = registerDescriptor.takeSnapShot()
+                registersToRestore.forEach { t, u ->
+                    u.forEach {
+                        textCodeGenerated.add(CodeBlock("sw ${t.id}, ${it.offsetAndMemoryUsable}", quadruplets.tab))
+                    }
+                }
+            }
+            QuadType.AssignIf -> {
+                val registerForValueToCopy = getRegisterForSymbolOrConstant(quadruplets.arg1, quadruplets.tab)
+                val symbolToMoveInNewRegister = quadruplets.result
+                //It is a movement
+                if (registerForValueToCopy?.startsWith("$") == true) {
+                    val loaderIfNeeded =
+                        getRegisterForSymbol(symbolToMoveInNewRegister, quadruplets.tab, listOf(registerForValueToCopy))
+                    textCodeGenerated.add(
+                        CodeBlock(
+                            "sw $registerForValueToCopy, ${symbolToMoveInNewRegister.offsetAndMemoryUsable}",
+                            quadruplets.tab
+                        )
+                    )
+
+                    val allRegisterThatAreTheSame = addressDescriptor.getRegistersForSymbol(symbolToMoveInNewRegister)
+                        .filter { it.id != registerForValueToCopy }
+                    val allSymbolsToMove = allRegisterThatAreTheSame.fold(mutableSetOf<Symbol>()) { carry, register ->
+                        carry.addAll(registerDescriptor.getSymbolsInRegister(register))
+                        carry
+                    }
+                    allRegisterThatAreTheSame.forEach {
+                        //Copy the registers to the new value to update
+                        textCodeGenerated.add(CodeBlock("move ${it.id}, ${registerForValueToCopy}", quadruplets.tab))
+                    }
+
+//
+                    registerDescriptor.descriptors.keys.firstOrNull { reg -> reg.id == registerForValueToCopy }
+                        ?.let { register ->
+                            //Add it
+                            registerDescriptor.setSymbolInRegister(register, symbolToMoveInNewRegister)
+                            addressDescriptor.setRegisterForSymbol(symbolToMoveInNewRegister, register)
+                        }
+
+                    //Now clean the registers
+                    registerDescriptor.descriptors.keys.forEach { register ->
+                        if (registerDescriptor.getSymbolsInRegister(register).isEmpty()) {
+                            //push it again
+                            if (!registerDescriptor.availableRegisters.contains(register)) {
+                                registerDescriptor.availableRegisters.add(register)
+                            }
+                        }
+                    }
+                }
+                else {
+                    val register = getRegisterForSymbol(symbolToMoveInNewRegister, quadruplets.tab)
+                    textCodeGenerated.add(CodeBlock("li ${register.id}, $registerForValueToCopy", quadruplets.tab))
+                    //Save it just in case
+                    textCodeGenerated.add(CodeBlock("sw ${register.id}, ${symbolToMoveInNewRegister.offsetAndMemoryUsable}", quadruplets.tab))
+
+                }
+            }
+            QuadType.RemoveSnapshot -> {
+//                registerDescriptor.descriptors.forEach { t, u ->
+//                    u.forEach {
+//                        textCodeGenerated.add(CodeBlock("sw ${t.id}, ${it.offsetAndMemoryUsable}", quadruplets.tab))
+//
+//                    }
+//                }
+                val addresses = addressDescriptor.removeSnapShot()
+                val registersThatMightbeenChanged = registerDescriptor.removeSnapShot()
+                registersThatMightbeenChanged.forEach { t, u ->
+                    u.firstOrNull()?.let {
+                        textCodeGenerated.add(CodeBlock("lw ${t.id}, ${it.offsetAndMemoryUsable}", quadruplets.tab))
+                    }
+                }
             }
             else -> {
 

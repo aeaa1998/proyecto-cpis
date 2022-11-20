@@ -46,14 +46,7 @@ public class Symbol {
     public void setOffset(int offset) {
         this.offset = offset;
     }
-    public int getSize() {
-        VisitorTypeResponse visitorTypeResponse = getAssociatedType(0, 0 );
-        if (visitorTypeResponse.isValid()){
-            return visitorTypeResponse.getType().getTotalSize();
-        }
-        //If there was an error we return 0
-        return 0;
-    }
+
     public VisitorTypeResponse getAssociatedType(int column, int line){
         Type associatedType = TypesTable.getInstance().getTypeByName(typeName);
         if (associatedType == null){

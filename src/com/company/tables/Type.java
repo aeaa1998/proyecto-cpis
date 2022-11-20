@@ -129,7 +129,7 @@ public class Type {
 
     public int getReferenceSize(){
         if (!isPointer()){
-            return getTotalSize();
+            return getTotalSize() - Constants.BaseSpace;
         }
         //If it is a complex structure we return the pointer
         return Constants.ReferenceSpace;
@@ -398,9 +398,9 @@ public class Type {
         if (parent != null){
             parent.fillTable(symbolTable);
             //If it is a complext structure
-            if (SymbolTable.heapOffset != parent.getTotalSize()){
-                SymbolTable.heapOffset = parent.getTotalSize();
-            }
+//            if (SymbolTable.heapOffset != parent.getTotalSize()){
+//                SymbolTable.heapOffset = parent.getTotalSize();
+//            }
         }
 
         for (String attributeName : attributesOrdered){
@@ -415,30 +415,47 @@ public class Type {
     }
 
     public void fillTableQuads(ArrayList<Quadruplets> vTableSectionQuads){
+        int order = 0;
         for (String functionIdC:
                 getAllMethods()) {
             Pair<Method, Type> pair = getMethodAndParent(functionIdC);
             if (pair != null) {
+                String id = pair.getSecond().getId() + "_" + pair.getFirst().getId();
+                if (Arrays.stream(Constants.SpecialFunctions).toList().contains(pair.getFirst().getId())){
+                    id = pair.getFirst().getId();
+                }
                 vTableSectionQuads.add(
                         new Quadruplets(
                                 QuadType.VTable,
-                                QuadArgument.createConstantArgument(pair.getSecond().getId() + "_" + pair.getFirst().getId()),
+                                QuadArgument.createConstantArgument(id),
                                 null,
                                 null,
                                 2
                         )
                 );
+                pair.getFirst().order = order;
+                order++;
             }
         }
 
     }
 
-    private Set<String> getAllMethods(){
-        HashSet<String> meths = new HashSet<>();
+    private ArrayList<String> getAllMethods(){
+        ArrayList<String> meths = new ArrayList<>();
         if (parent != null){
-            meths.addAll(parent.getAllMethods());
+            ArrayList<String> m = parent.getAllMethods();
+            meths.addAll(m);
+
         }
-        meths.addAll(methodsOrdered);
+
+
+        for (String m:
+                methodsOrdered) {
+            if (!meths.contains(m)){
+                meths.add(m);
+            }
+        }
+
         return meths;
     }
 
@@ -457,6 +474,7 @@ public class Type {
         type.setMethod(typeNameMethod);
         //All have a class
         type.setAttribute(new Attribute(Constants.classNameValue, Constants.String, 1, 1));
+        type.setAttribute(new Attribute(Constants.vTableValue, Constants.String, 1, 1));
         //Base size
         type.size = Constants.BaseSpace;
         type.parentSize = 0;

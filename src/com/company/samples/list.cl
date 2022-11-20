@@ -108,14 +108,14 @@ class Main inherits IO {
       if l.isNil() then out_string("\n")
                    else {
 			   out_int(l.head());
-			   out_string(" ");
+			    out_string("\n");
 			   print_list(l.tail());
 		        }
       fi
    };
 
    -- Note how the dynamic dispatch mechanism is responsible to end
-   -- the while loop. As long as mylist is bound to an object of 
+   -- the while loop. As long as mylist is bound to an object of
    -- dynamic type Cons, the dispatch to isNil calls the isNil method of
    -- the Cons class, which returns false. However when we reach the
    -- end of the list, mylist gets bound to the object that was
@@ -125,16 +125,16 @@ class Main inherits IO {
 
    main() : Object {
       {
-	 mylist <- (new List).cons(1);
-	 --.cons(2).cons(3).cons(4).cons(5);
+	 mylist <- (new List).cons(1).cons(1).cons(2).cons(3).cons(4);
 	 while (not mylist.isNil()) loop
 	    {
 	       print_list(mylist);
 	       mylist <- mylist.tail();
 	    }
 	 pool;
-	 --268697612
-	 --268697616
+	 --268697600
+	 --268697620
+	 --268697632
       }
    };
 

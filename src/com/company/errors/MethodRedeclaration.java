@@ -6,7 +6,6 @@ public class MethodRedeclaration extends Exception {
     private final int column;
     private final int line;
 
-
     public MethodRedeclaration(String name, String type, int column, int line) {
         super(
                 "El metodo ya " + name + " ha sido declarado en el contexto de " + type + ".\n" +
