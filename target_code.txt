@@ -8,7 +8,26 @@
 	Object_vtable:
 		.word Object_abort
 		.word Object_type_name
-	string0: .asciiz "Main"
+	string0: .asciiz "List"
+	string1: .asciiz "Cons"
+	string2: .asciiz "\n"
+	string3: .asciiz "\n"
+	string4: .asciiz "Main"
+	List_vtable:
+		.word Object_abort
+		.word Object_type_name
+		.word List_isNil
+		.word List_head
+		.word List_tail
+		.word List_cons
+	Cons_vtable:
+		.word Object_abort
+		.word Object_type_name
+		.word Cons_isNil
+		.word Cons_head
+		.word Cons_tail
+		.word List_cons
+		.word Cons_init
 	Main_vtable:
 		.word Object_abort
 		.word Object_type_name
@@ -16,7 +35,7 @@
 		.word out_int
 		.word in_string
 		.word in_int
-		.word Main_ackermann
+		.word Main_print_list
 		.word Main_main
 .text
 main:
@@ -26,8 +45,252 @@ sw $t9, -320($sp)
 jal Main_main
 li $v0, 10
 syscall
-#Declaring new function ackermann
-Main_ackermann:
+#Declaring new function isNil
+List_isNil:
+	subi $sp, $sp, 20
+	# We are going to store the current state
+	sw $t9, 0($sp)
+	sw $t0, 4($sp)
+	sw $t1, 8($sp)
+	sw $t2, 12($sp)
+	#Adding space for the parameters + body
+	subi $sp, $sp, 300
+	sw $ra, 296($sp)
+	lw $t9, 0($sp)
+	lw $ra, 296($sp)
+	#We are going to assign the response
+	#Finalizo la función isNil
+	li $v0, 1
+	#removing space for the parameters + body
+	subi $sp, $sp, -300
+	# We are going to restore the current state
+	lw $t9, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	subi $sp, $sp, -20
+	jr $ra
+#Declaring new function head
+List_head:
+	subi $sp, $sp, 20
+	# We are going to store the current state
+	sw $t9, 0($sp)
+	sw $t0, 4($sp)
+	sw $t1, 8($sp)
+	sw $t2, 12($sp)
+	#Adding space for the parameters + body
+	subi $sp, $sp, 300
+	sw $ra, 296($sp)
+	lw $t9, 0($sp)
+	#We are going to send a heap
+	sw $t9, 0($sp)
+	lw $s0, 4($t9)
+	lw $s0, 0($s0)
+	jalr $s0
+	lw $t0, 4($sp)
+	#Setting value for Object_abort
+	move $t0, $v0
+	lw $ra, 296($sp)
+	#We are going to assign the response
+	#Finalizo la función head
+	li $v0, 0
+	#removing space for the parameters + body
+	subi $sp, $sp, -300
+	# We are going to restore the current state
+	lw $t9, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	subi $sp, $sp, -20
+	jr $ra
+#Declaring new function tail
+List_tail:
+	subi $sp, $sp, 20
+	# We are going to store the current state
+	sw $t9, 0($sp)
+	sw $t0, 4($sp)
+	sw $t1, 8($sp)
+	sw $t2, 12($sp)
+	#Adding space for the parameters + body
+	subi $sp, $sp, 300
+	sw $ra, 296($sp)
+	lw $t9, 0($sp)
+	#We are going to send a heap
+	sw $t9, 0($sp)
+	lw $s0, 4($t9)
+	lw $s0, 0($s0)
+	jalr $s0
+	lw $t0, 4($sp)
+	#Setting value for Object_abort
+	move $t0, $v0
+	lw $ra, 296($sp)
+	#We are going to assign the response
+	#Finalizo la función tail
+	move $v0, $t9
+	#removing space for the parameters + body
+	subi $sp, $sp, -300
+	# We are going to restore the current state
+	lw $t9, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	subi $sp, $sp, -20
+	jr $ra
+#Declaring new function cons
+List_cons:
+	subi $sp, $sp, 20
+	# We are going to store the current state
+	sw $t9, 0($sp)
+	sw $t0, 4($sp)
+	sw $t1, 8($sp)
+	sw $t2, 12($sp)
+	#Adding space for the parameters + body
+	subi $sp, $sp, 300
+	sw $ra, 296($sp)
+	lw $t9, 0($sp)
+	#Creating a new instance of the class Cons
+	jal instantiate_new_Cons
+	lw $t0, 8($sp)
+	#Setting value for instantiate_new_Cons
+	move $t0, $v0
+	#We are going to pass an instance as a param
+	#We are going to send a heap
+	sw $t0, -320($sp)
+	lw $t1, 4($sp)
+	#We are going to send a param with offset defined
+	sw $t1, -316($sp)
+	lw $t2, 12($sp)
+	sw $t9, 12($sp)
+	move $t2, $t9
+	#We are going to send a param with offset defined
+	sw $t2, -312($sp)
+	##Calling (newCons).init(i,self)
+	lw $s0, 4($t0)
+	lw $s0, 24($s0)
+	jalr $s0
+	sw $t1, 4($sp)
+	lw $t1, 16($sp)
+	#Setting value for Cons_init
+	move $t1, $v0
+	lw $ra, 296($sp)
+	#We are going to assign the response
+	#Finalizo la función cons
+	move $v0, $t1
+	#removing space for the parameters + body
+	subi $sp, $sp, -300
+	# We are going to restore the current state
+	lw $t9, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	subi $sp, $sp, -20
+	jr $ra
+#Defining new class List
+instantiate_new_List:
+	subi $sp, $sp, 20
+	sw $ra, 0($sp)
+	sw $t9, 4($sp)
+	sw $t0, 8($sp)
+	sw $t1, 12($sp)
+	sw $t2, 16($sp)
+	li $v0, 9
+	li $a0, 8
+	syscall
+	move $t9, $v0
+	la $v0, List_vtable
+	sw $v0, 4($t9)
+	#Declaring name value
+	li $a0, 4
+	la $a1, string0
+	jal copyString
+	sw $v0,  0($t9)
+	move $v0, $t9
+	lw $ra, 0($sp)
+	lw $t9, 4($sp)
+	lw $t0, 8($sp)
+	lw $t1, 12($sp)
+	lw $t2, 16($sp)
+	addi $sp, $sp, 20
+	jr $ra
+#Declaring new function isNil
+Cons_isNil:
+	subi $sp, $sp, 20
+	# We are going to store the current state
+	sw $t9, 0($sp)
+	sw $t0, 4($sp)
+	sw $t1, 8($sp)
+	sw $t2, 12($sp)
+	#Adding space for the parameters + body
+	subi $sp, $sp, 300
+	sw $ra, 296($sp)
+	lw $t9, 0($sp)
+	lw $ra, 296($sp)
+	#We are going to assign the response
+	#Finalizo la función isNil
+	li $v0, 0
+	#removing space for the parameters + body
+	subi $sp, $sp, -300
+	# We are going to restore the current state
+	lw $t9, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	subi $sp, $sp, -20
+	jr $ra
+#Declaring new function head
+Cons_head:
+	subi $sp, $sp, 20
+	# We are going to store the current state
+	sw $t9, 0($sp)
+	sw $t0, 4($sp)
+	sw $t1, 8($sp)
+	sw $t2, 12($sp)
+	#Adding space for the parameters + body
+	subi $sp, $sp, 300
+	sw $ra, 296($sp)
+	lw $t9, 0($sp)
+	lw $ra, 296($sp)
+	#We are going to assign the response
+	#Finalizo la función head
+	lw $t0, 8($t9)
+	move $v0, $t0
+	#removing space for the parameters + body
+	subi $sp, $sp, -300
+	# We are going to restore the current state
+	lw $t9, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	subi $sp, $sp, -20
+	jr $ra
+#Declaring new function tail
+Cons_tail:
+	subi $sp, $sp, 20
+	# We are going to store the current state
+	sw $t9, 0($sp)
+	sw $t0, 4($sp)
+	sw $t1, 8($sp)
+	sw $t2, 12($sp)
+	#Adding space for the parameters + body
+	subi $sp, $sp, 300
+	sw $ra, 296($sp)
+	lw $t9, 0($sp)
+	lw $ra, 296($sp)
+	#We are going to assign the response
+	#Finalizo la función tail
+	lw $t0, 12($t9)
+	move $v0, $t0
+	#removing space for the parameters + body
+	subi $sp, $sp, -300
+	# We are going to restore the current state
+	lw $t9, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	subi $sp, $sp, -20
+	jr $ra
+#Declaring new function init
+Cons_init:
 	subi $sp, $sp, 20
 	# We are going to store the current state
 	sw $t9, 0($sp)
@@ -39,138 +302,185 @@ Main_ackermann:
 	sw $ra, 296($sp)
 	lw $t9, 0($sp)
 	lw $t0, 4($sp)
+	lw $t1, 8($t9)
+	sw $t0, 8($t9)
+	move $t1, $t0
+	lw $t2, 8($sp)
+	sw $t1, 8($t9)
+	lw $t1, 12($t9)
+	sw $t2, 12($t9)
+	move $t1, $t2
+	lw $ra, 296($sp)
+	#We are going to assign the response
+	#Finalizo la función init
+	move $v0, $t9
+	#removing space for the parameters + body
+	subi $sp, $sp, -300
+	# We are going to restore the current state
+	lw $t9, 0($sp)
+	lw $t0, 4($sp)
+	lw $t1, 8($sp)
+	lw $t2, 12($sp)
+	subi $sp, $sp, -20
+	jr $ra
+#Defining new class Cons
+instantiate_new_Cons:
+	subi $sp, $sp, 20
+	sw $ra, 0($sp)
+	sw $t9, 4($sp)
+	sw $t0, 8($sp)
+	sw $t1, 12($sp)
+	sw $t2, 16($sp)
+	li $v0, 9
+	li $a0, 16
+	syscall
+	move $t9, $v0
+	la $v0, Cons_vtable
+	sw $v0, 4($t9)
+	#Declaring name value
+	li $a0, 4
+	la $a1, string1
+	jal copyString
+	sw $v0,  0($t9)
+	move $v0, $t9
+	lw $ra, 0($sp)
+	lw $t9, 4($sp)
+	lw $t0, 8($sp)
 	lw $t1, 12($sp)
-	xor $t1, $t0, 0
-	slti $t1, $t1, 1
+	lw $t2, 16($sp)
+	addi $sp, $sp, 20
+	jr $ra
+#Declaring new function print_list
+Main_print_list:
+	subi $sp, $sp, 20
+	# We are going to store the current state
+	sw $t9, 0($sp)
+	sw $t0, 4($sp)
+	sw $t1, 8($sp)
+	sw $t2, 12($sp)
+	#Adding space for the parameters + body
+	subi $sp, $sp, 300
+	sw $ra, 296($sp)
+	lw $t9, 0($sp)
+	#We are going to pass an instance as a param
+	#We are going to send a heap
+	lw $t0, 4($sp)
+	sw $t0, -320($sp)
+	##Calling l.isNil()
+	lw $s0, 4($t0)
+	lw $s0, 8($s0)
+	jalr $s0
+	lw $t1, 8($sp)
+	#Setting value for List_isNil
+	move $t1, $v0
 	bne $t1, 0, TRUE_0
 	j FALSE_0
 	TRUE_0:
+sw $t1, 8($sp)
 sw $t0, 4($sp)
-sw $t1, 12($sp)
-		lw $t2, 8($sp)
+		lw $t2, 12($sp)
+		li $a0, 1
+		la $a1, string2
+		jal copyString
+		move $t2, $v0
+		#We are going to send a heap
+		sw $t9, -16($sp)
+		#We are going to send a param with offset defined
+		sw $t2, -12($sp)
+		lw $s0, 4($t9)
+		lw $s0, 8($s0)
+		jalr $s0
+		sw $t1, 8($sp)
+		lw $t1, 16($sp)
+		#Setting value for out_string
+		move $t1, $v0
 		sw $t0, 4($sp)
-		lw $t0, 16($sp)
-		addi $t0, $t2, 1
-		sw $t2, 8($sp)
-		lw $t2, 56($sp)
-		sw $t0, 56($sp)
-		move $t2, $t0
+		lw $t0, 44($sp)
+		sw $t1, 44($sp)
+		move $t0, $t1
+lw $t1, 8($sp)
 lw $t0, 4($sp)
-lw $t1, 12($sp)
 		j ENDIF_0
 	FALSE_0:
+sw $t1, 8($sp)
 sw $t0, 4($sp)
-sw $t1, 12($sp)
+		#We are going to pass an instance as a param
+		#We are going to send a heap
+		sw $t1, 8($sp)
+		lw $t1, 4($sp)
+		sw $t1, -320($sp)
+		##Calling l.head()
+		lw $s0, 4($t1)
+		lw $s0, 12($s0)
+		jalr $s0
+		sw $t1, 4($sp)
+		lw $t1, 20($sp)
+		#Setting value for List_head
+		move $t1, $v0
+		#We are going to send a heap
+		sw $t9, -20($sp)
+		#We are going to send a param with offset defined
+		sw $t1, -16($sp)
+		lw $s0, 4($t9)
+		lw $s0, 12($s0)
+		jalr $s0
+		sw $t1, 20($sp)
+		lw $t1, 24($sp)
+		#Setting value for out_int
+		move $t1, $v0
+		sw $t1, 24($sp)
+		lw $t1, 28($sp)
+		li $a0, 1
+		la $a1, string3
+		jal copyString
+		move $t1, $v0
+		#We are going to send a heap
+		sw $t9, -16($sp)
+		#We are going to send a param with offset defined
+		sw $t1, -12($sp)
+		lw $s0, 4($t9)
+		lw $s0, 8($s0)
+		jalr $s0
+		sw $t1, 28($sp)
+		lw $t1, 32($sp)
+		#Setting value for out_string
+		move $t1, $v0
+		#We are going to pass an instance as a param
+		#We are going to send a heap
+		sw $t1, 32($sp)
+		lw $t1, 4($sp)
+		sw $t1, -320($sp)
+		##Calling l.tail()
+		lw $s0, 4($t1)
+		lw $s0, 16($s0)
+		jalr $s0
+		sw $t1, 4($sp)
+		lw $t1, 36($sp)
+		#Setting value for List_tail
+		move $t1, $v0
+		#We are going to send a heap
+		sw $t9, -320($sp)
+		#We are going to send a param with offset defined
+		sw $t1, -316($sp)
+		lw $s0, 4($t9)
+		lw $s0, 24($s0)
+		jalr $s0
+		sw $t1, 36($sp)
+		lw $t1, 40($sp)
+		#Setting value for Main_print_list
+		move $t1, $v0
 		sw $t0, 4($sp)
-		lw $t0, 8($sp)
-		lw $t2, 20($sp)
-		xor $t2, $t0, 0
-		slti $t2, $t2, 1
-		bne $t2, 0, TRUE_1
-		j FALSE_1
-		TRUE_1:
-sw $t0, 8($sp)
-sw $t2, 20($sp)
-sw $t1, 12($sp)
-			sw $t0, 8($sp)
-			lw $t0, 4($sp)
-			sw $t2, 20($sp)
-			lw $t2, 24($sp)
-			subi $t2, $t0, 1
-			#We are going to send a heap
-			sw $t9, -320($sp)
-			#We are going to send a param with offset defined
-			sw $t2, -316($sp)
-			sw $t0, 4($sp)
-			lw $t0, 28($sp)
-			li $t0, 1
-			sw $t0, 28($sp)
-			#We are going to send a param with offset defined
-			sw $t0, -312($sp)
-			lw $s0, 4($t9)
-			lw $s0, 24($s0)
-			jalr $s0
-			sw $t0, 28($sp)
-			lw $t0, 32($sp)
-			#Setting value for Main_ackermann
-			move $t0, $v0
-			sw $t2, 24($sp)
-			lw $t2, 52($sp)
-			sw $t0, 52($sp)
-			move $t2, $t0
-lw $t0, 8($sp)
-lw $t2, 20($sp)
-lw $t1, 12($sp)
-			j ENDIF_1
-		FALSE_1:
-sw $t0, 8($sp)
-sw $t2, 20($sp)
-sw $t1, 12($sp)
-			sw $t0, 8($sp)
-			lw $t0, 4($sp)
-			sw $t2, 20($sp)
-			lw $t2, 36($sp)
-			subi $t2, $t0, 1
-			sw $t0, 4($sp)
-			lw $t0, 8($sp)
-			sw $t2, 36($sp)
-			lw $t2, 40($sp)
-			subi $t2, $t0, 1
-			#We are going to send a heap
-			sw $t9, -320($sp)
-			sw $t0, 8($sp)
-			lw $t0, 4($sp)
-			#We are going to send a param with offset defined
-			sw $t0, -316($sp)
-			#We are going to send a param with offset defined
-			sw $t2, -312($sp)
-			lw $s0, 4($t9)
-			lw $s0, 24($s0)
-			jalr $s0
-			sw $t0, 4($sp)
-			lw $t0, 44($sp)
-			#Setting value for Main_ackermann
-			move $t0, $v0
-			#We are going to send a heap
-			sw $t9, -320($sp)
-			sw $t0, 44($sp)
-			lw $t0, 36($sp)
-			#We are going to send a param with offset defined
-			sw $t0, -316($sp)
-			sw $t0, 36($sp)
-			lw $t0, 44($sp)
-			#We are going to send a param with offset defined
-			sw $t0, -312($sp)
-			lw $s0, 4($t9)
-			lw $s0, 24($s0)
-			jalr $s0
-			sw $t0, 44($sp)
-			lw $t0, 48($sp)
-			#Setting value for Main_ackermann
-			move $t0, $v0
-			sw $t2, 40($sp)
-			lw $t2, 52($sp)
-			sw $t0, 52($sp)
-			move $t2, $t0
-		ENDIF_1:
-		lw $t0, 8($sp)
-		lw $t2, 20($sp)
-		lw $t1, 12($sp)
-		sw $t0, 8($sp)
-		lw $t0, 52($sp)
-		sw $t2, 20($sp)
-		lw $t2, 56($sp)
-		sw $t0, 56($sp)
-		move $t2, $t0
+		lw $t0, 44($sp)
+		sw $t1, 44($sp)
+		move $t0, $t1
 	ENDIF_0:
+	lw $t1, 8($sp)
 	lw $t0, 4($sp)
-	lw $t1, 12($sp)
 	lw $ra, 296($sp)
 	#We are going to assign the response
-	#Finalizo la función ackermann
-	sw $t0, 4($sp)
-	lw $t0, 56($sp)
-	move $v0, $t0
+	#Finalizo la función print_list
+	lw $t2, 44($sp)
+	move $v0, $t2
 	#removing space for the parameters + body
 	subi $sp, $sp, -300
 	# We are going to restore the current state
@@ -192,35 +502,166 @@ Main_main:
 	subi $sp, $sp, 300
 	sw $ra, 296($sp)
 	lw $t9, 0($sp)
-	#We are going to send a heap
-	sw $t9, -320($sp)
-	lw $t0, 8($t9)
-	#We are going to send a param with offset defined
-	sw $t0, -316($sp)
-	lw $t1, 12($t9)
-	#We are going to send a param with offset defined
-	sw $t1, -312($sp)
-	lw $s0, 4($t9)
-	lw $s0, 24($s0)
-	jalr $s0
-	lw $t2, 4($sp)
-	#Setting value for Main_ackermann
-	move $t2, $v0
-	#We are going to send a heap
-	sw $t9, -20($sp)
-	#We are going to send a param with offset defined
-	sw $t2, -16($sp)
-	lw $s0, 4($t9)
-	lw $s0, 12($s0)
-	jalr $s0
-	sw $t0, 8($t9)
-	lw $t0, 8($sp)
-	#Setting value for out_int
+	#Creating a new instance of the class List
+	jal instantiate_new_List
+	lw $t0, 4($sp)
+	#Setting value for instantiate_new_List
 	move $t0, $v0
+	#We are going to pass an instance as a param
+	#We are going to send a heap
+	sw $t0, -320($sp)
+	lw $t1, 8($sp)
+	li $t1, 1
+	sw $t1, 8($sp)
+	#We are going to send a param with offset defined
+	sw $t1, -316($sp)
+	##Calling (newList).cons(1)
+	lw $s0, 4($t0)
+	lw $s0, 20($s0)
+	jalr $s0
+	lw $t2, 12($sp)
+	#Setting value for List_cons
+	move $t2, $v0
+	#We are going to pass an instance as a param
+	#We are going to send a heap
+	sw $t2, -320($sp)
+	sw $t1, 8($sp)
+	lw $t1, 16($sp)
+	li $t1, 2
+	sw $t1, 16($sp)
+	#We are going to send a param with offset defined
+	sw $t1, -316($sp)
+	##Calling (newList).cons(1).cons(2)
+	lw $s0, 4($t2)
+	lw $s0, 20($s0)
+	jalr $s0
+	sw $t1, 16($sp)
+	lw $t1, 20($sp)
+	#Setting value for List_cons
+	move $t1, $v0
+	#We are going to pass an instance as a param
+	#We are going to send a heap
+	sw $t1, -320($sp)
+	sw $t1, 20($sp)
+	lw $t1, 24($sp)
+	li $t1, 3
+	sw $t1, 24($sp)
+	#We are going to send a param with offset defined
+	sw $t1, -316($sp)
+	##Calling (newList).cons(1).cons(2).cons(3)
+	sw $t1, 24($sp)
+	lw $t1, 20($sp)
+	lw $s0, 4($t1)
+	lw $s0, 20($s0)
+	jalr $s0
+	sw $t1, 20($sp)
+	lw $t1, 28($sp)
+	#Setting value for List_cons
+	move $t1, $v0
+	#We are going to pass an instance as a param
+	#We are going to send a heap
+	sw $t1, -320($sp)
+	sw $t1, 28($sp)
+	lw $t1, 32($sp)
+	li $t1, 4
+	sw $t1, 32($sp)
+	#We are going to send a param with offset defined
+	sw $t1, -316($sp)
+	##Calling (newList).cons(1).cons(2).cons(3).cons(4)
+	sw $t1, 32($sp)
+	lw $t1, 28($sp)
+	lw $s0, 4($t1)
+	lw $s0, 20($s0)
+	jalr $s0
+	sw $t1, 28($sp)
+	lw $t1, 36($sp)
+	#Setting value for List_cons
+	move $t1, $v0
+	sw $t0, 4($sp)
+	lw $t0, 8($t9)
+	sw $t1, 8($t9)
+	move $t0, $t1
+	#We are going to pass an instance as a param
+	#We are going to send a heap
+	sw $t0, -320($sp)
+	##Calling mylist.isNil()
+	lw $s0, 4($t0)
+	lw $s0, 8($s0)
+	jalr $s0
+	sw $t1, 36($sp)
+	sw $t1, 8($t9)
+	lw $t1, 40($sp)
+	#Setting value for List_isNil
+	move $t1, $v0
+	sw $t0, 8($t9)
+	lw $t0, 44($sp)
+	addi $t1, $t1, 1
+	div $t1, $t1, 2
+	mfhi $t0
+	bne $t0, 0, WHILE_0
+	j END_WHILE_0
+sw $t1, 40($sp)
+sw $t0, 44($sp)
+sw $t2, 12($sp)
+	WHILE_0:
+		#We are going to send a heap
+		sw $t9, -320($sp)
+		sw $t1, 40($sp)
+		lw $t1, 8($t9)
+		#We are going to send a param with offset defined
+		sw $t1, -316($sp)
+		lw $s0, 4($t9)
+		lw $s0, 24($s0)
+		jalr $s0
+		sw $t1, 8($t9)
+		lw $t1, 48($sp)
+		#Setting value for Main_print_list
+		move $t1, $v0
+		#We are going to pass an instance as a param
+		#We are going to send a heap
+		sw $t1, 48($sp)
+		lw $t1, 8($t9)
+		sw $t1, -320($sp)
+		##Calling mylist.tail()
+		lw $s0, 4($t1)
+		lw $s0, 16($s0)
+		jalr $s0
+		sw $t1, 8($t9)
+		lw $t1, 52($sp)
+		#Setting value for List_tail
+		move $t1, $v0
+		sw $t0, 44($sp)
+		lw $t0, 8($t9)
+		sw $t1, 8($t9)
+		move $t0, $t1
+		#We are going to pass an instance as a param
+		#We are going to send a heap
+		sw $t0, -320($sp)
+		##Calling mylist.isNil()
+		lw $s0, 4($t0)
+		lw $s0, 8($s0)
+		jalr $s0
+		sw $t1, 52($sp)
+		sw $t1, 8($t9)
+		lw $t1, 56($sp)
+		#Setting value for List_isNil
+		move $t1, $v0
+		sw $t0, 8($t9)
+		lw $t0, 60($sp)
+		addi $t1, $t1, 1
+		div $t1, $t1, 2
+		mfhi $t0
+	bne $t0, 0, WHILE_0
+lw $t1, 40($sp)
+lw $t0, 44($sp)
+lw $t2, 12($sp)
+	END_WHILE_0:
 	lw $ra, 296($sp)
 	#We are going to assign the response
 	#Finalizo la función main
-	move $v0, $t0
+	sw $t1, 40($sp)
+	lw $t1, 64($sp)
+	move $v0, $t1
 	#removing space for the parameters + body
 	subi $sp, $sp, -300
 	# We are going to restore the current state
@@ -239,26 +680,16 @@ instantiate_new_Main:
 	sw $t1, 12($sp)
 	sw $t2, 16($sp)
 	li $v0, 9
-	li $a0, 20
+	li $a0, 16
 	syscall
 	move $t9, $v0
 	la $v0, Main_vtable
 	sw $v0, 4($t9)
-	#Declaring property  m of class Int
-	lw $t0, 8($t9)
-	li $t0, 3
-	sw $t0, 8($t9)
-	#Declaring property  n of class Int
-	lw $t1, 12($t9)
-	li $t1, 2
-	sw $t1, 12($t9)
 	#Declaring name value
 	li $a0, 4
-	la $a1, string0
+	la $a1, string4
 	jal copyString
 	sw $v0,  0($t9)
-	sw $t0, 8($t9)
-	sw $t1, 12($t9)
 	move $v0, $t9
 	lw $ra, 0($sp)
 	lw $t9, 4($sp)

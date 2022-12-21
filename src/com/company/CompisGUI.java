@@ -1,8 +1,10 @@
 package com.company;
 
+import com.company.codegen.CodeBlock;
 import com.company.errors.SymbolErrorsContainer;
 import com.company.errors.TableErrorsContainer;
 import com.company.errors.YAPLError;
+import com.company.intermedary.ThreeAddressCode;
 import com.company.tables.SymbolTable;
 import com.company.tables.TypesTable;
 import com.company.visitor.YAPLSymbolsVisitor;
@@ -40,8 +42,11 @@ import org.fxmisc.richtext.model.StyleSpans;
 import org.fxmisc.richtext.model.StyleSpansBuilder;
 import org.reactfx.collection.ListModification;
 
+import java.io.*;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Scanner;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -166,9 +171,43 @@ public class CompisGUI extends Application {
                     setErrorColor(console);
                     return;
                 }
+                ThreeAddressCode tac = symVisitor.getTAC();
+                List<CodeBlock> code = tac.generateCode();
+                StringBuilder codeBuilder = new StringBuilder();
+                for (CodeBlock c: code) {
+                    codeBuilder
+                            .append("\t".repeat(Math.max(0, c.getTab())));
+                    codeBuilder
+                            .append(c.getBlock()).append("\n");
+                }
+                String template = null;
+                try {
+                    template = readTemplate();
+                    createFile("final_code.asm", template.replace("###TEMPLATE###", codeBuilder.toString()));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                Runtime rt = Runtime.getRuntime();
+                try {
+                    Process pr = rt.exec("java -jar Mars4_5.jar final_code.asm");
+                    try {
+                        pr.waitFor();
+                        InputStream inputStream = pr.getInputStream();
+                        Scanner s = new Scanner(inputStream).useDelimiter("\\A");
+                        String result = s.hasNext() ? s.next() : "";
+                        console.setText(result);
+                        console.setStyle("-fx-text-fill: green");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        console.setText("Felicidades se compilo todo bien");
+                        console.setStyle("-fx-text-fill: green");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    console.setText("Felicidades se compilo todo bien");
+                    console.setStyle("-fx-text-fill: green");
+                }
 
-                console.setText("Felicidades se compilo todo bien");
-                console.setStyle("-fx-text-fill: green");
             }
         });
 
@@ -207,7 +246,7 @@ public class CompisGUI extends Application {
         //
 
         Scene scene = new Scene(pane, width, height);
-        scene.getStylesheets().add(CompisGUI.class.getResource("java-keywords.css").toExternalForm());
+        scene.getStylesheets().add(CompisGUI.class.getResource("resources/java-keywords.css").toExternalForm());
 
         primaryStage.setTitle("Mi compilador");
         primaryStage.setScene(scene);
@@ -303,6 +342,30 @@ public class CompisGUI extends Application {
         private void print() {
             System.out.println( ((CodeArea) getOwnerNode()).getText() );
         }
+    }
+    public static void createFile(String fileName, String content) {
+        try {
+            File myObj = new File(fileName);
+            if (myObj.createNewFile()) {
+//                System.out.println("File created: " + myObj.getName());
+            } else {
+//                System.out.println("File already exists.");
+            }
+            FileWriter myWriter = new FileWriter(fileName);
+            myWriter.write(content);
+            myWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private static String readTemplate() throws FileNotFoundException {
+        StringBuilder content = new StringBuilder();
+        File file = new File("./TEMPLATE.asm");
+        Scanner scanner = new Scanner(file);
+        while(scanner.hasNextLine()){
+            content.append(scanner.nextLine()).append("\n");
+        }
+        return content.toString();
     }
 
 }

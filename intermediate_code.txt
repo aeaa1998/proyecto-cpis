@@ -1,8 +1,297 @@
-# Declaring new function ackermann
-Main_ackermann:
+# Declaring new function isNil
+List_isNil:
 	Assign in stack 20
 	Save the next symbols: 
 	Save 0 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	# Adding space for the parameters + body
+	Assign in stack 300
+				# We are going to assign the response
+	return 1
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Assign in stack -20
+	# Declaring new function head
+List_head:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 4 offset stack
+	# Adding space for the parameters + body
+	Assign in stack 300
+			param 0 en heap
+	call Object_abort null
+	setCall 4 offset stack
+		# We are going to assign the response
+	return 0
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 4 offset stack
+	Assign in stack -20
+	# Declaring new function tail
+List_tail:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 4 offset stack
+	# Adding space for the parameters + body
+	Assign in stack 300
+			param 0 en heap
+	call Object_abort null
+	setCall 4 offset stack
+		# We are going to assign the response
+	return 0 en heap
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 4 offset stack
+	Assign in stack -20
+	# Declaring new function cons
+List_cons:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset stack
+	Save 8 offset stack
+	Save 12 offset stack
+	Save 16 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	# Adding space for the parameters + body
+	Assign in stack 300
+			# Creating a new instance of the class Cons
+	call instantiate_new_Cons 0
+	setCall 8 offset stack
+	# We are going to pass an instance as a param
+	param 8 offset stack
+	param 4 offset stack
+	12 offset stack = List
+	param 12 offset stack
+	# #Calling (newCons).init(i,self)
+	call Cons_init null
+	setCall 16 offset stack
+		# We are going to assign the response
+	return 16 offset stack
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset stack
+	Restore 8 offset stack
+	Restore 12 offset stack
+	Restore 16 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Assign in stack -20
+	# Defining new class List
+instantiate_new_List:
+	assign_space_heap 8
+		# Declaring name value
+		set return heap address
+# Declaring new function isNil
+Cons_isNil:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 8 offset heap
+	Save 12 offset heap
+	# Adding space for the parameters + body
+	Assign in stack 300
+				# We are going to assign the response
+	return 0
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 8 offset heap
+	Restore 12 offset heap
+	Assign in stack -20
+	# Declaring new function head
+Cons_head:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 8 offset heap
+	Save 12 offset heap
+	# Adding space for the parameters + body
+	Assign in stack 300
+				# We are going to assign the response
+	return 8 offset heap
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 8 offset heap
+	Restore 12 offset heap
+	Assign in stack -20
+	# Declaring new function tail
+Cons_tail:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 8 offset heap
+	Save 12 offset heap
+	# Adding space for the parameters + body
+	Assign in stack 300
+				# We are going to assign the response
+	return 12 offset heap
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 8 offset heap
+	Restore 12 offset heap
+	Assign in stack -20
+	# Declaring new function init
+Cons_init:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset stack
+	Save 8 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 8 offset heap
+	Save 12 offset heap
+	# Adding space for the parameters + body
+	Assign in stack 300
+			8 offset heap = i
+	12 offset heap = rest
+		# We are going to assign the response
+	return 0 en heap
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset stack
+	Restore 8 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 8 offset heap
+	Restore 12 offset heap
+	Assign in stack -20
+	# Defining new class Cons
+instantiate_new_Cons:
+	assign_space_heap 16
+		# Declaring name value
+		set return heap address
+# Declaring new function print_list
+Main_print_list:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 4 offset stack
+	Save 8 offset stack
+	Save 12 offset stack
+	Save 16 offset stack
+	Save 44 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 8 offset heap
+	Save 20 offset stack
+	Save 24 offset stack
+	Save 28 offset stack
+	Save 32 offset stack
+	Save 36 offset stack
+	Save 40 offset stack
+	# Adding space for the parameters + body
+	Assign in stack 300
+			# We are going to pass an instance as a param
+	param 4 offset stack
+	# #Calling l.isNil()
+	call List_isNil null
+	setCall 8 offset stack
+	if tmp14 TRUE_0
+	else FALSE_0
+	TRUE_0:
+				param 0 en heap
+		param 12 offset stack
+		call out_string null
+		setCall 16 offset stack
+				goTo ENDIF_0
+	FALSE_0:
+		# We are going to pass an instance as a param
+		param 4 offset stack
+		# #Calling l.head()
+		call List_head null
+		setCall 20 offset stack
+		param 0 en heap
+		param 20 offset stack
+		call out_int null
+		setCall 24 offset stack
+				param 0 en heap
+		param 28 offset stack
+		call out_string null
+		setCall 32 offset stack
+		# We are going to pass an instance as a param
+		param 4 offset stack
+		# #Calling l.tail()
+		call List_tail null
+		setCall 36 offset stack
+		param 0 en heap
+		param 36 offset stack
+		call Main_print_list null
+		setCall 40 offset stack
+			ENDIF_0:
+			# We are going to assign the response
+	return 44 offset stack
+	# removing space for the parameters + body
+	Assign in stack -300
+	Restore the next symbols: 
+	Restore 0 offset stack
+	Restore 4 offset stack
+	Restore 8 offset stack
+	Restore 12 offset stack
+	Restore 16 offset stack
+	Restore 44 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 8 offset heap
+	Restore 20 offset stack
+	Restore 24 offset stack
+	Restore 28 offset stack
+	Restore 32 offset stack
+	Restore 36 offset stack
+	Restore 40 offset stack
+	Assign in stack -20
+	# Declaring new function main
+Main_main:
+	Assign in stack 20
+	Save the next symbols: 
+	Save 0 offset stack
+	Save 0 offset heap
+	Save 4 offset heap
+	Save 8 offset heap
+	Save 48 offset stack
+	Save 52 offset stack
 	Save 4 offset stack
 	Save 8 offset stack
 	Save 12 offset stack
@@ -14,55 +303,81 @@ Main_ackermann:
 	Save 36 offset stack
 	Save 40 offset stack
 	Save 44 offset stack
-	Save 48 offset stack
-	Save 52 offset stack
 	Save 56 offset stack
-	Save 0 offset heap
-	Save 4 offset heap
-	Save 4 offset stack
-	Save 8 offset stack
+	Save 60 offset stack
+	Save 64 offset stack
 	# Adding space for the parameters + body
 	Assign in stack 300
-			tmp1 = m = 0
-	if tmp1 TRUE_0
-	else FALSE_0
-	TRUE_0:
-		tmp3 = n + 1
-				goTo ENDIF_0
-	FALSE_0:
-		tmp4 = n = 0
-		if tmp4 TRUE_1
-		else FALSE_1
-		TRUE_1:
-			tmp6 = m - 1
-			param 0 en heap
-			param 24 offset stack
-			28 offset stack = 1
-			param 28 offset stack
-			call Main_ackermann null
-			setCall 32 offset stack
-						goTo ENDIF_1
-		FALSE_1:
-			tmp9 = m - 1
-			tmp10 = n - 1
-			param 0 en heap
-			param 4 offset stack
-			param 40 offset stack
-			call Main_ackermann null
-			setCall 44 offset stack
-			param 0 en heap
-			param 36 offset stack
-			param 44 offset stack
-			call Main_ackermann null
-			setCall 48 offset stack
-					ENDIF_1:
-					ENDIF_0:
-			# We are going to assign the response
-	return 56 offset stack
+			# Creating a new instance of the class List
+	call instantiate_new_List 0
+	setCall 4 offset stack
+	# We are going to pass an instance as a param
+	param 4 offset stack
+	8 offset stack = 1
+	param 8 offset stack
+	# #Calling (newList).cons(1)
+	call List_cons null
+	setCall 12 offset stack
+	# We are going to pass an instance as a param
+	param 12 offset stack
+	16 offset stack = 2
+	param 16 offset stack
+	# #Calling (newList).cons(1).cons(2)
+	call List_cons null
+	setCall 20 offset stack
+	# We are going to pass an instance as a param
+	param 20 offset stack
+	24 offset stack = 3
+	param 24 offset stack
+	# #Calling (newList).cons(1).cons(2).cons(3)
+	call List_cons null
+	setCall 28 offset stack
+	# We are going to pass an instance as a param
+	param 28 offset stack
+	32 offset stack = 4
+	param 32 offset stack
+	# #Calling (newList).cons(1).cons(2).cons(3).cons(4)
+	call List_cons null
+	setCall 36 offset stack
+	8 offset heap = tmp33
+	# We are going to pass an instance as a param
+	param 8 offset heap
+	# #Calling mylist.isNil()
+	call List_isNil null
+	setCall 40 offset stack
+	not tmp34
+	if tmp35 WHILE_0
+	else END_WHILE_0
+	WHILE_0:
+		param 0 en heap
+		param 8 offset heap
+		call Main_print_list null
+		setCall 48 offset stack
+		# We are going to pass an instance as a param
+		param 8 offset heap
+		# #Calling mylist.tail()
+		call List_tail null
+		setCall 52 offset stack
+		8 offset heap = tmp37
+		# We are going to pass an instance as a param
+		param 8 offset heap
+		# #Calling mylist.isNil()
+		call List_isNil null
+		setCall 56 offset stack
+		not tmp38
+	if tmp39 WHILE_0
+	END_WHILE_0:
+		# We are going to assign the response
+	return 64 offset stack
 	# removing space for the parameters + body
 	Assign in stack -300
 	Restore the next symbols: 
 	Restore 0 offset stack
+	Restore 0 offset heap
+	Restore 4 offset heap
+	Restore 8 offset heap
+	Restore 48 offset stack
+	Restore 52 offset stack
 	Restore 4 offset stack
 	Restore 8 offset stack
 	Restore 12 offset stack
@@ -74,55 +389,12 @@ Main_ackermann:
 	Restore 36 offset stack
 	Restore 40 offset stack
 	Restore 44 offset stack
-	Restore 48 offset stack
-	Restore 52 offset stack
 	Restore 56 offset stack
-	Restore 0 offset heap
-	Restore 4 offset heap
-	Restore 4 offset stack
-	Restore 8 offset stack
-	Assign in stack -20
-	# Declaring new function main
-Main_main:
-	Assign in stack 20
-	Save the next symbols: 
-	Save 0 offset stack
-	Save 0 offset heap
-	Save 4 offset heap
-	Save 8 offset heap
-	Save 12 offset heap
-	Save 4 offset stack
-	Save 8 offset stack
-	# Adding space for the parameters + body
-	Assign in stack 300
-			param 0 en heap
-	param 8 offset heap
-	param 12 offset heap
-	call Main_ackermann null
-	setCall 4 offset stack
-	param 0 en heap
-	param 4 offset stack
-	call out_int null
-	setCall 8 offset stack
-		# We are going to assign the response
-	return 8 offset stack
-	# removing space for the parameters + body
-	Assign in stack -300
-	Restore the next symbols: 
-	Restore 0 offset stack
-	Restore 0 offset heap
-	Restore 4 offset heap
-	Restore 8 offset heap
-	Restore 12 offset heap
-	Restore 4 offset stack
-	Restore 8 offset stack
+	Restore 60 offset stack
+	Restore 64 offset stack
 	Assign in stack -20
 	# Defining new class Main
 instantiate_new_Main:
-	assign_space_heap 20
-		# Declaring property  m of class Int
-	8 offset heap = 3
-	# Declaring property  n of class Int
-	12 offset heap = 2
-	# Declaring name value
+	assign_space_heap 16
+		# Declaring name value
 		set return heap address

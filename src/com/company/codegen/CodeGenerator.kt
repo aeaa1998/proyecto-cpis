@@ -399,7 +399,7 @@ class CodeGenerator(
             }
             QuadType.SmallNegation -> {
                 val register = getRegisterForSymbol(quadruplets.arg1.symbol, quadruplets.tab)
-                val resultRegister = getRegisterForSymbol(quadruplets.result, quadruplets.tab)
+                val resultRegister = getRegisterForSymbol(quadruplets.result, quadruplets.tab, listOf(register.id))
                 textCodeGenerated.add(CodeBlock("nor ${resultRegister.id}, ${register.id}, ${register.id}", quadruplets.tab))
             }
             QuadType.AssignSpaceHeap -> {

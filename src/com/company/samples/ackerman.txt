@@ -1,5 +1,5 @@
 class Main inherits IO {
-    m: Int <- 3;
+    m: Int <- 2;
     n: Int <- 2;
 
     ackermann(m : Int, n: Int) : Int {
